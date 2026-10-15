@@ -1,0 +1,93 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StudentHub | Register</title>
+</head>
+<body>
+<a href="#main-content">Skip to main content</a>
+<header>
+    <h1>🎓 StudentHub</h1>
+    <p>Join Our Student Community</p>
+    <nav aria-label="Main navigation">
+        <ul>
+            <li><a href="index.html">Home</a></li>
+            <li><a href="about.html">About</a></li>
+            <li><a href="register.html" aria-current="page">Register</a></li>
+            <li><a href="login.html">Login</a></li>
+            <li><a href="dashboard.html">Dashboard</a></li>
+            <li><a href="events.html">Events</a></li>
+            <li><a href="profile.html">Profile</a></li>
+            <li><a href="contact.html">Contact</a></li>
+            <li><a href="admin.html">Admin</a></li>
+            <li><a href="faq.html">FAQ</a></li>
+        </ul>
+    </nav>
+    <hr>
+</header>
+<main id="main-content">
+    <h2>Create Your Student Account</h2>
+    <p>Please enter your details below. Fields marked required must be completed.</p>
+
+    <form action="#" method="get">
+        <fieldset>
+            <legend>Personal Information</legend>
+            <p>
+                <label for="full-name">Full Name:</label><br>
+                <input type="text" id="full-name" name="full-name" autocomplete="name" required>
+            </p>
+            <p>
+                <label for="email">Email Address:</label><br>
+                <input type="email" id="email" name="email" autocomplete="email" required>
+            </p>
+            <p>
+                <label for="student-id">Student ID:</label><br>
+                <input type="text" id="student-id" name="student-id" required>
+            </p>
+            <p>
+                <label for="course">Select Course:</label><br>
+                <select id="course" name="course" required>
+                    <option value="">Choose your course</option>
+                    <option>Computer Engineering</option>
+                    <option>Information Technology</option>
+                    <option>Mechanical Engineering</option>
+                    <option>Electronics Engineering</option>
+                    <option>Civil Engineering</option>
+                </select>
+            </p>
+        </fieldset>
+
+        <fieldset>
+            <legend>Account Information</legend>
+            <p>
+                <label for="password">Create Password:</label><br>
+                <input type="password" id="password" name="password" minlength="8" autocomplete="new-password" required>
+            </p>
+            <p>
+                <label for="confirm-password">Confirm Password:</label><br>
+                <input type="password" id="confirm-password" name="confirm-password" minlength="8" autocomplete="new-password" required>
+            </p>
+        </fieldset>
+
+        <p>
+            <input type="checkbox" id="terms" name="terms" required>
+            <label for="terms">I agree to the terms and conditions.</label>
+        </p>
+        <p>
+            <button type="submit">Register Now</button>
+            <button type="reset">Clear Form</button>
+        </p>
+    </form>
+
+    <p>Already registered? <a href="login.html">Login here</a>.</p>
+    <p>Need help? Visit our <a href="faq.html">FAQ page</a>.</p>
+</main>
+<footer>
+    <hr>
+    <p>&copy; 2026 StudentHub</p>
+    <p><a href="index.html">Back to Home</a></p>
+</footer>
+</body>
+</html>
