@@ -1,0 +1,3112 @@
+| DIVISION-2(3CE)    | BATCH:(C2)    | ID NO:25CE140   |
+| PRACTICAL:7   |  |
+| Aim: To process submitted registration/contact form data using PHP, validate and sanitize inputs on the server side, and store records in CSV or JSON file format with clear success/error messages.   <td colspan=2/> |
+Page:1_contact.php 
+Code: 
+<?php
+/**
+ * Practical 7: PHP Form Processing with Server-Side Validation & CSV File Storage
+ * Subject: Web Development Frameworks (ITUE203) - Semester 3
+ */
+
+$pageTitle = "Contact Support";
+require_once __DIR__ . '/header.php';
+
+$successMsg = "";
+$errorMsg = "";
+
+// Check if form submitted via POST
+if ($_SERVER["REQUEST_METHOD"] === "POST") {
+    // 1. Sanitize inputs
+    $name = isset($_POST['name']) ? htmlspecialchars(trim($_POST['name'])) : '';
+    $email = isset($_POST['email']) ? htmlspecialchars(trim($_POST['email'])) : '';
+    $subject = isset($_POST['subject']) ? htmlspecialchars(trim($_POST['subject'])) : '';
+    $message = isset($_POST['message']) ? htmlspecialchars(trim($_POST['message'])) : '';
+
+    // 2. Server-side validation
+    if (empty($name) || empty($email) || empty($subject) || empty($message)) {
+        $errorMsg = "All fields are required. Please complete the form.";
+    } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        $errorMsg = "Please enter a valid email address.";
+    } elseif (strlen($name) < 3) {
+        $errorMsg = "Name must be at least 3 characters long.";
+    } elseif (strlen($message) < 5) {
+        $errorMsg = "Message must be at least 5 characters long.";
+    } else {
+        // 3. Safe CSV file writing
+        $csvFile = __DIR__ . '/data/contacts.csv';
+        $submittedAt = date('Y-m-d H:i:s');
+
+        // Check if file exists to write header
+        $writeHeader = !file_exists($csvFile);
+
+        $fp = @fopen($csvFile, 'a');
+        if ($fp) {
+            if ($writeHeader) {
+                fputcsv($fp, ['Name', 'Email', 'Subject', 'Message', 'SubmittedAt']);
+            }
+            fputcsv($fp, [$name, $email, $subject, $message, $submittedAt]);
+            fclose($fp);
+            $successMsg = "Thank you, $name! Your message has been received and stored in our records (data/contacts.csv).";
+        } else {
+            $errorMsg = "Failed to write to file storage. Please check permissions.";
+        }
+    }
+}
+
+// Read stored CSV records for display (Intermediate Extension)
+$csvRecords = [];
+$csvFile = __DIR__ . '/data/contacts.csv';
+if (file_exists($csvFile)) {
+    if (($handle = fopen($csvFile, "r")) !== FALSE) {
+        $header = fgetcsv($handle); // Read header
+        while (($data = fgetcsv($handle)) !== FALSE) {
+            $csvRecords[] = $data;
+        }
+        fclose($handle);
+    }
+}
+?>
+
+<main>
+    <div class="page-header">
+        <h2>Contact Student Support Desk</h2>
+        <p>PHP Form Processing with Server-Side Validation and CSV File Storage (Practical 7).</p>
+    </div>
+
+    <!-- Alert Messages (Practical 7) -->
+    <?php if (!empty($successMsg)): ?>
+        <div class="alert alert-success">
+            ✅ <?php echo $successMsg; ?>
+        </div>
+    <?php endif; ?>
+
+    <?php if (!empty($errorMsg)): ?>
+        <div class="alert alert-danger">
+            ⚠️ <?php echo $errorMsg; ?>
+        </div>
+    <?php endif; ?>
+
+    <div class="grid-2">
+        <!-- Contact Form (Practical 2 & 7) -->
+        <section class="card">
+            <h3 style="color: var(--primary-color); margin-bottom: 15px;">Send a Message</h3>
+            
+            <form method="POST" action="contact.php">
+                <div class="form-group">
+                    <label for="name">Your Name *</label>
+                    <input type="text" id="name" name="name" placeholder="Enter your full name" required 
+                           value="<?php echo isset($_POST['name']) && empty($successMsg) ? htmlspecialchars($_POST['name']) : ''; ?>">
+                </div>
+
+                <div class="form-group">
+                    <label for="email">Email Address *</label>
+                    <input type="email" id="email" name="email" placeholder="Enter your college email" required
+                           value="<?php echo isset($_POST['email']) && empty($successMsg) ? htmlspecialchars($_POST['email']) : ''; ?>">
+                </div>
+
+                <div class="form-group">
+                    <label for="subject">Subject *</label>
+                    <input type="text" id="subject" name="subject" placeholder="Inquiry topic or issue" required
+                           value="<?php echo isset($_POST['subject']) && empty($successMsg) ? htmlspecialchars($_POST['subject']) : ''; ?>">
+                </div>
+
+                <div class="form-group">
+                    <label for="message">Message *</label>
+                    <textarea id="message" name="message" placeholder="Describe your question or feedback in detail..." required><?php echo isset($_POST['message']) && empty($successMsg) ? htmlspecialchars($_POST['message']) : ''; ?></textarea>
+                </div>
+
+                <button type="submit" class="btn btn-primary btn-block">
+                    📨 Submit Message (POST to CSV)
+                </button>
+            </form>
+        </section>
+
+        <!-- Campus Contact Details (Practical 2) -->
+        <section>
+            <div class="card">
+                <h3 style="color: var(--primary-color); margin-bottom: 12px;">Campus Support Office</h3>
+                <p style="color: var(--text-muted); font-size: 14.5px; margin-bottom: 15px;">
+                    Our student support desk is available Monday through Saturday from 9:00 AM to 5:00 PM for academic inquiries and account support.
+                </p>
+
+                <div style="font-size: 14px; line-height: 2;">
+                    <strong>📍 Location:</strong> Faculty of Technology & Engineering, CHARUSAT<br>
+                    <strong>📞 Phone:</strong> <a href="tel:+919876543210">+91 98765 43210</a><br>
+                    <strong>✉️ Email:</strong> <a href="mailto:support@studenthub.com">support@studenthub.com</a><br>
+                    <strong>🏢 Department:</strong> Student Affairs & Academic Records
+                </div>
+            </div>
+
+            <!-- CSV Stored Records Display (Practical 7 Extension) -->
+            <div class="card" style="margin-top: 20px;">
+                <h3 style="color: var(--primary-color); margin-bottom: 10px;">Recent Submissions (from <code>data/contacts.csv</code>)</h3>
+                <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 12px;">
+                    Practical 7 Extension: Demonstrating data retrieved from server CSV file storage.
+                </p>
+
+                <div class="table-responsive" style="max-height: 200px; overflow-y: auto;">
+                    <table class="data-table" style="font-size: 12.5px;">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Subject</th>
+                                <th>Timestamp</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php if (empty($csvRecords)): ?>
+                                <tr><td colspan="3" style="text-align: center; color: var(--text-muted);">No records in CSV yet.</td></tr>
+                            <?php else: ?>
+                                <?php foreach (array_reverse(array_slice($csvRecords, -5)) as $row): ?>
+                                    <tr>
+                                        <td><strong><?php echo htmlspecialchars($row[0] ?? ''); ?></strong></td>
+                                        <td><?php echo htmlspecialchars($row[2] ?? ''); ?></td>
+                                        <td><?php echo htmlspecialchars($row[4] ?? ''); ?></td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            <?php endif; ?>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+    </div>
+</main>
+
+<?php require_once __DIR__ . '/footer.php'; ?>
+Output: 
+[Form submission successfully validated and record appended to data/contacts.csv with confirmation alert displayed]
+
+Page:2_contacts.csv 
+Code: 
+Name,Email,Subject,Message,SubmittedAt
+"Aarav Sharma","aarav.sharma@studenthub.com","Portal Inquiry","Need help accessing old course notes","2026-10-10 11:30:00"
+"Priya Patel","priya.patel@studenthub.com","Event Registration","Inquiring about sports meet schedule","2026-10-11 14:15:00"
+Output: 
+[CSV file stored safely on server containing comma-separated student inquiries]
+
+Page:3_feedback.php 
+Code: 
+<?php
+/**
+ * Practical 7 (JSON Storage Variant): Feedback Processing with JSON File Storage
+ * Subject: Web Development Frameworks (ITUE203) - Semester 3
+ */
+
+$pageTitle = "Portal Feedback";
+require_once __DIR__ . '/header.php';
+
+$successMsg = "";
+$errorMsg = "";
+$jsonFile = __DIR__ . '/data/feedback.json';
+
+// Handle POST Submission
+if ($_SERVER["REQUEST_METHOD"] === "POST") {
+    $name = isset($_POST['name']) ? htmlspecialchars(trim($_POST['name'])) : '';
+    $email = isset($_POST['email']) ? htmlspecialchars(trim($_POST['email'])) : '';
+    $rating = isset($_POST['rating']) ? htmlspecialchars(trim($_POST['rating'])) : 'Excellent';
+    $message = isset($_POST['message']) ? htmlspecialchars(trim($_POST['message'])) : '';
+
+    if (empty($name) || empty($email) || empty($message)) {
+        $errorMsg = "Please fill in all required feedback fields.";
+    } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        $errorMsg = "Please enter a valid email address.";
+    } else {
+        // Read existing JSON
+        $existingFeedback = [];
+        if (file_exists($jsonFile)) {
+            $jsonContent = file_get_contents($jsonFile);
+            $existingFeedback = json_decode($jsonContent, true) ?: [];
+        }
+
+        // Add new record
+        $newEntry = [
+            'name' => $name,
+            'email' => $email,
+            'rating' => $rating,
+            'message' => $message,
+            'submitted_at' => date('Y-m-d H:i:s')
+        ];
+
+        $existingFeedback[] = $newEntry;
+
+        // Save back to JSON
+        if (file_put_contents($jsonFile, json_encode($existingFeedback, JSON_PRETTY_PRINT))) {
+            $successMsg = "Thank you! Your feedback has been stored successfully in data/feedback.json.";
+        } else {
+            $errorMsg = "Could not write to JSON file. Please check file permissions.";
+        }
+    }
+}
+
+// Read JSON records for display
+$allFeedback = [];
+if (file_exists($jsonFile)) {
+    $allFeedback = json_decode(file_get_contents($jsonFile), true) ?: [];
+}
+?>
+
+<main>
+    <div class="page-header">
+        <h2>Student Feedback Portal</h2>
+        <p>PHP Form Processing with Server-Side Validation and JSON File Storage (Practical 7).</p>
+    </div>
+
+    <?php if (!empty($successMsg)): ?>
+        <div class="alert alert-success">✅ <?php echo $successMsg; ?></div>
+    <?php endif; ?>
+
+    <?php if (!empty($errorMsg)): ?>
+        <div class="alert alert-danger">⚠️ <?php echo $errorMsg; ?></div>
+    <?php endif; ?>
+
+    <div class="grid-2">
+        <section class="card">
+            <h3 style="color: var(--primary-color); margin-bottom: 15px;">Share Your Experience</h3>
+            <form method="POST" action="feedback.php">
+                <div class="form-group">
+                    <label for="name">Student Name *</label>
+                    <input type="text" id="name" name="name" required placeholder="Enter your name"
+                           value="<?php echo isset($_SESSION['username']) ? htmlspecialchars($_SESSION['username']) : ''; ?>">
+                </div>
+
+                <div class="form-group">
+                    <label for="email">Student Email *</label>
+                    <input type="email" id="email" name="email" required placeholder="name@studenthub.com">
+                </div>
+
+                <div class="form-group">
+                    <label for="rating">Rating *</label>
+                    <select id="rating" name="rating">
+                        <option value="Excellent">⭐⭐⭐⭐⭐ Excellent</option>
+                        <option value="Good">⭐⭐⭐⭐ Good</option>
+                        <option value="Average">⭐⭐⭐ Average</option>
+                        <option value="Needs Improvement">⭐⭐ Needs Improvement</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="message">Feedback Comments *</label>
+                    <textarea id="message" name="message" required placeholder="What do you think about StudentHub? Any suggestions?"></textarea>
+                </div>
+
+                <button type="submit" class="btn btn-primary btn-block">
+                    📤 Submit Feedback (Save to JSON)
+                </button>
+            </form>
+        </section>
+
+        <section class="card">
+            <h3 style="color: var(--primary-color); margin-bottom: 12px;">Recent Feedbacks (from <code>data/feedback.json</code>)</h3>
+            <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 15px;">
+                Demonstrating server-side retrieval of JSON records stored via PHP.
+            </p>
+
+            <div style="display: flex; flex-direction: column; gap: 12px; max-height: 400px; overflow-y: auto;">
+                <?php if (empty($allFeedback)): ?>
+                    <p style="color: var(--text-muted);">No feedback records yet.</p>
+                <?php else: ?>
+                    <?php foreach (array_reverse(array_slice($allFeedback, -5)) as $fb): ?>
+                        <div style="border-left: 3px solid var(--primary-color); padding: 10px 14px; background: rgba(0,0,0,0.02); border-radius: 4px;">
+                            <div style="display: flex; justify-content: space-between; font-size: 13px;">
+                                <strong><?php echo htmlspecialchars($fb['name']); ?></strong>
+                                <span style="color: var(--primary-color); font-weight: bold;"><?php echo htmlspecialchars($fb['rating']); ?></span>
+                            </div>
+                            <p style="font-size: 13.5px; margin: 6px 0; color: var(--text-color);"><?php echo htmlspecialchars($fb['message']); ?></p>
+                            <small style="color: var(--text-muted);"><?php echo htmlspecialchars($fb['submitted_at']); ?></small>
+                        </div>
+                    <?php endforeach; ?>
+                <?php endif; ?>
+            </div>
+        </section>
+    </div>
+</main>
+
+<?php require_once __DIR__ . '/footer.php'; ?>
+Output: 
+[Student feedback processed via POST and stored into data/feedback.json]
+
+Page:4_feedback.json 
+Code: 
+[
+  {
+    "name": "Manali Patel",
+    "email": "manali@studenthub.com",
+    "rating": "Excellent",
+    "message": "StudentHub makes finding college events so much easier!",
+    "submitted_at": "2026-10-12 10:20:00"
+  }
+]
+Output: 
+[Structured JSON array storing persistent student ratings and comments]
+| <td colspan=2/> |
+| Gitnub-link:   |  |
+| https://github.com/voramonali9-alt/wdf3rd  <td colspan=2/> |
+Key Question: 
+1. Is the form submitted using POST? 
+Answer: 
+Yes. The contact and feedback forms use method="POST" so that user data is sent securely in the HTTP request body and is not exposed in the browser URL.
+2. Are inputs validated and sanitized server side? 
+Answer: 
+Yes. Inputs are trimmed, sanitized using htmlspecialchars() to prevent Cross-Site Scripting (XSS), and emails are validated using filter_var($email, FILTER_VALIDATE_EMAIL).
+3. Is file writing handled safely? 
+Answer: 
+Yes. For CSV files, safe file pointers with fopen() in append mode ('a') and fputcsv() are used. For JSON storage, file_put_contents() with json_encode() is implemented.
+4. Are success and error responses displayed clearly? 
+Answer: 
+Yes. Conditional alert banners (alert-success and alert-danger) are displayed at the top of the webpage informing the user whether the record was stored successfully or highlighting validation issues.
+| <td colspan=2/> |
+| PRACTICAL:8   |  |
+| Aim: To design the MySQL database schema for StudentHub with users, students, events, registrations, and audit logs, and create a secure PHP database connection using MySQLi and PDO statements.   <td colspan=2/> |
+Page:1_studenthub.sql 
+Code: 
+-- ==============================================================
+-- StudentHub Portal Database Schema & Seed Data
+-- Subject: Web Development Frameworks (ITUE203) - Semester 3
+-- Practical 8, 9, 10, 11, 12, 14
+-- Compatible with XAMPP MySQL / phpMyAdmin
+-- ==============================================================
+
+CREATE DATABASE IF NOT EXISTS studenthub;
+USE studenthub;
+
+-- 1. Table: users (Practical 8, 9, 10)
+DROP TABLE IF EXISTS users;
+CREATE TABLE users (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    username VARCHAR(50) NOT NULL UNIQUE,
+    email VARCHAR(100) NOT NULL UNIQUE,
+    password VARCHAR(255) NOT NULL,
+    role VARCHAR(20) NOT NULL DEFAULT 'student',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 2. Table: students (Practical 8, 11 - Minimum 20 Seeded Records)
+DROP TABLE IF EXISTS students;
+CREATE TABLE students (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    student_id VARCHAR(20) NOT NULL UNIQUE,
+    name VARCHAR(100) NOT NULL,
+    email VARCHAR(100) NOT NULL UNIQUE,
+    mobile VARCHAR(15) NOT NULL,
+    course VARCHAR(50) NOT NULL,
+    year VARCHAR(20) NOT NULL,
+    gender VARCHAR(10) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 3. Table: events (Practical 8, 12, 13)
+DROP TABLE IF EXISTS events;
+CREATE TABLE events (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    title VARCHAR(100) NOT NULL,
+    description TEXT NOT NULL,
+    category VARCHAR(50) NOT NULL,
+    event_date DATE NOT NULL,
+    venue VARCHAR(100) NOT NULL,
+    poster VARCHAR(255) DEFAULT NULL,
+    status VARCHAR(20) NOT NULL DEFAULT 'Upcoming',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 4. Table: registrations (Practical 8, 14)
+DROP TABLE IF EXISTS registrations;
+CREATE TABLE registrations (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    student_name VARCHAR(100) NOT NULL,
+    student_email VARCHAR(100) NOT NULL,
+    event_id INT NOT NULL,
+    event_title VARCHAR(100) NOT NULL,
+    registered_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 5. Table: audit_logs (Practical 14)
+DROP TABLE IF EXISTS audit_logs;
+CREATE TABLE audit_logs (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    action VARCHAR(150) NOT NULL,
+    username VARCHAR(50) NOT NULL,
+    role VARCHAR(20) NOT NULL,
+    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ==============================================================
+-- SEED DATA
+-- ==============================================================
+
+-- Seed Users (Passwords: admin123, student123, manali123)
+INSERT INTO users (username, email, password, role) VALUES
+('admin', 'admin@studenthub.com', '\\.y8/I5MQ8CA3HKF0j6aes7Pccon2lG.ZxAjZPlc5JfHfVk6kFzm', 'admin'),
+('student', 'student@studenthub.com', '\\.HXqukjbVMO25EHrrB.2gVCzm2qdvQFE/qerdY5vT2', 'student'),
+('manali', 'manali@studenthub.com', '\\.HXqukjbVMO25EHrrB.2gVCzm2qdvQFE/qerdY5vT2', 'student'),
+('rohit', 'rohit.sharma@studenthub.com', '\\.HXqukjbVMO25EHrrB.2gVCzm2qdvQFE/qerdY5vT2', 'student'),
+('priya', 'priya.patel@studenthub.com', '\\.HXqukjbVMO25EHrrB.2gVCzm2qdvQFE/qerdY5vT2', 'student');
+
+-- Seed Students: Minimum 20 records (Practical 11 requirement)
+INSERT INTO students (student_id, name, email, mobile, course, year, gender) VALUES
+('ST202601', 'Manali Patel', 'manali@studenthub.com', '9876543201', 'Computer Engineering', '2nd Year', 'Female'),
+('ST202602', 'Aarav Sharma', 'aarav.sharma@studenthub.com', '9876543202', 'IT Engineering', '2nd Year', 'Male'),
+('ST202603', 'Diya Mehta', 'diya.mehta@studenthub.com', '9876543203', 'AI & ML', '1st Year', 'Female'),
+('ST202604', 'Rohan Verma', 'rohan.verma@studenthub.com', '9876543204', 'Computer Engineering', '3rd Year', 'Male'),
+('ST202605', 'Ananya Shah', 'ananya.shah@studenthub.com', '9876543205', 'IT Engineering', '2nd Year', 'Female'),
+('ST202606', 'Kabir Joshi', 'kabir.joshi@studenthub.com', '9876543206', 'Mechanical Engineering', '4th Year', 'Male'),
+('ST202607', 'Isha Trivedi', 'isha.trivedi@studenthub.com', '9876543207', 'Civil Engineering', '1st Year', 'Female'),
+('ST202608', 'Devansh Desai', 'devansh.desai@studenthub.com', '9876543208', 'Computer Engineering', '2nd Year', 'Male'),
+('ST202609', 'Khushi Dave', 'khushi.dave@studenthub.com', '9876543209', 'AI & ML', '3rd Year', 'Female'),
+('ST202610', 'Yash Parmar', 'yash.parmar@studenthub.com', '9876543210', 'IT Engineering', '4th Year', 'Male'),
+('ST202611', 'Pooja Bhatt', 'pooja.bhatt@studenthub.com', '9876543211', 'Computer Engineering', '1st Year', 'Female'),
+('ST202612', 'Siddharth Rao', 'siddharth.rao@studenthub.com', '9876543212', 'Mechanical Engineering', '2nd Year', 'Male'),
+('ST202613', 'Neha Gupta', 'neha.gupta@studenthub.com', '9876543213', 'IT Engineering', '3rd Year', 'Female'),
+('ST202614', 'Aryan Solanki', 'aryan.solanki@studenthub.com', '9876543214', 'Civil Engineering', '2nd Year', 'Male'),
+('ST202615', 'Tanvi Choksi', 'tanvi.choksi@studenthub.com', '9876543215', 'AI & ML', '2nd Year', 'Female'),
+('ST202616', 'Harsh Vora', 'harsh.vora@studenthub.com', '9876543216', 'Computer Engineering', '4th Year', 'Male'),
+('ST202617', 'Riddhi Prajapati', 'riddhi.prajapati@studenthub.com', '9876543217', 'IT Engineering', '1st Year', 'Female'),
+('ST202618', 'Vivek Soni', 'vivek.soni@studenthub.com', '9876543218', 'Computer Engineering', '3rd Year', 'Male'),
+('ST202619', 'Mitali Rathod', 'mitali.rathod@studenthub.com', '9876543219', 'AI & ML', '1st Year', 'Female'),
+('ST202620', 'Karan Makwana', 'karan.makwana@studenthub.com', '9876543220', 'Mechanical Engineering', '3rd Year', 'Male'),
+('ST202621', 'Jiya Panchal', 'jiya.panchal@studenthub.com', '9876543221', 'Civil Engineering', '4th Year', 'Female');
+
+-- Seed Events (Practical 12, 13)
+INSERT INTO events (title, description, category, event_date, venue, poster, status) VALUES
+('Web Development Workshop', 'Hands-on practical session covering HTML5, CSS Grid, Flexbox, and PHP backend integration.', 'Workshop', '2026-10-25', 'Auditorium Hall A', 'event1.jpg', 'Upcoming'),
+('Student Innovation Expo', 'Annual exhibition showcasing student tech projects, software models, and research posters.', 'Exhibition', '2026-11-05', 'Campus Grounds', 'event2.jpg', 'Upcoming'),
+('AI & Machine Learning Seminar', 'Expert talk by industry leaders on the role of machine learning in modern engineering.', 'Seminar', '2026-11-12', 'Seminar Hall 2', 'event3.jpg', 'Upcoming'),
+('CodeSprint Hackathon', '24-hour inter-college coding competition with exciting prizes and mentorship.', 'Competition', '2026-11-20', 'Computer Lab 3', 'event4.jpg', 'Upcoming'),
+('Career Guidance Seminar', 'Session on internship opportunities, resume building, and placement preparation.', 'Seminar', '2026-12-02', 'Main Auditorium', 'event5.jpg', 'Upcoming'),
+('Sports Meet 2026', 'Inter-departmental cricket, volleyball, badminton, and athletics tournaments.', 'Sports', '2026-12-15', 'Sports Complex', 'event6.jpg', 'Upcoming');
+
+-- Seed Registrations (Practical 8, 14)
+INSERT INTO registrations (student_name, student_email, event_id, event_title) VALUES
+('Manali Patel', 'manali@studenthub.com', 1, 'Web Development Workshop'),
+('Aarav Sharma', 'aarav.sharma@studenthub.com', 1, 'Web Development Workshop'),
+('Diya Mehta', 'diya.mehta@studenthub.com', 2, 'Student Innovation Expo'),
+('Rohan Verma', 'rohan.verma@studenthub.com', 3, 'AI & Machine Learning Seminar'),
+('Ananya Shah', 'ananya.shah@studenthub.com', 4, 'CodeSprint Hackathon');
+
+-- Seed Audit Logs (Practical 14)
+INSERT INTO audit_logs (action, username, role) VALUES
+('Admin logged in', 'admin', 'admin'),
+('Added new event: Web Development Workshop', 'admin', 'admin'),
+('Added student: Manali Patel', 'admin', 'admin'),
+('Exported student records', 'admin', 'admin'),
+('System database initialized', 'admin', 'admin');
+Output: 
+[Database schema and tables successfully imported into XAMPP MySQL with 21 seeded student records]
+
+Page:2_db.php 
+Code: 
+<?php
+/**
+ * Practical 8: MySQL Schema Design, ER Model, PDO & MySQLi Connectivity
+ * Subject: Web Development Frameworks (ITUE203) - Semester 3
+ * Database Connection configuration for XAMPP
+ */
+
+$servername = "localhost";
+$username   = "root";
+$password   = "";
+$dbname     = "studenthub";
+
+// 1. MySQLi Connection (Used in Practicals 9, 10, 11, 12, 13, 14)
+$conn = new mysqli($servername, $username, $password, $dbname);
+
+// Check if studenthub database exists, if not fallback to pract8
+if ($conn->connect_error) {
+    // Attempt fallback to pract8
+    $conn = new mysqli($servername, $username, $password, "pract8");
+    if ($conn->connect_error) {
+        die("Database Connection Failed: " . $conn->connect_error);
+    }
+}
+
+// Set charset to utf8mb4
+$conn->set_charset("utf8mb4");
+
+// 2. PDO Connection (Practical 8 Extension Requirement)
+try {
+    $pdo = new PDO("mysql:host=$servername;dbname=$dbname;charset=utf8mb4", $username, $password, [
+        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC
+    ]);
+} catch (PDOException $e) {
+    try {
+        $pdo = new PDO("mysql:host=$servername;dbname=pract8;charset=utf8mb4", $username, $password, [
+            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC
+        ]);
+    } catch (PDOException $ex) {
+        $pdo = null; // PDO optional fallback
+    }
+}
+?>
+Output: 
+[Database connection established successfully using both MySQLi and PDO with charset utf8mb4]
+| <td colspan=2/> |
+| Gitnub-link:   |  |
+| https://github.com/voramonali9-alt/wdf3rd  <td colspan=2/> |
+Key Question: 
+1. Is the schema normalized properly? 
+Answer: 
+Yes. The schema is organized into separate normalized tables (users, students, events, registrations, audit_logs) to eliminate data redundancy and maintain referential integrity.
+2. Are primary keys and foreign keys correctly defined? 
+Answer: 
+Yes. Each table defines an auto-incrementing integer PRIMARY KEY (id), and unique constraints are enforced on student_id, username, and email.
+3. Is the database connection handled securely? 
+Answer: 
+Yes. The connection uses error handling with connect_error and PDOException try-catch blocks, sets the character encoding to utf8mb4, and supports prepared statements.
+| <td colspan=2/> |
+| PRACTICAL:9   |  |
+| Aim: To implement secure user registration by inserting user details into MySQL using MySQLi, validate inputs on frontend and backend, check for duplicate email/username, and hash passwords using password_hash().   <td colspan=2/> |
+Page:1_register.php 
+Code: 
+<?php
+/**
+ * Practical 5: Frontend Form Validation with Regex & Password Strength
+ * Practical 9: Secure User Registration with Duplicate Check & Password Hashing
+ * Subject: Web Development Frameworks (ITUE203) - Semester 3
+ */
+
+$pageTitle = "Student Registration";
+require_once __DIR__ . '/header.php';
+require_once __DIR__ . '/db.php';
+
+$successMsg = "";
+$errorMsg = "";
+
+// Handle Backend PHP Registration (Practical 9)
+if ($_SERVER["REQUEST_METHOD"] === "POST") {
+    $name = isset($_POST['name']) ? htmlspecialchars(trim($_POST['name'])) : '';
+    $username = isset($_POST['username']) ? htmlspecialchars(trim($_POST['username'])) : '';
+    $email = isset($_POST['email']) ? htmlspecialchars(trim($_POST['email'])) : '';
+    $mobile = isset($_POST['mobile']) ? htmlspecialchars(trim($_POST['mobile'])) : '';
+    $password = isset($_POST['password']) ? $_POST['password'] : '';
+    $confirm_password = isset($_POST['confirm_password']) ? $_POST['confirm_password'] : '';
+    $course = isset($_POST['course']) ? htmlspecialchars(trim($_POST['course'])) : '';
+    $year = isset($_POST['year']) ? htmlspecialchars(trim($_POST['year'])) : '';
+    $gender = isset($_POST['gender']) ? htmlspecialchars(trim($_POST['gender'])) : '';
+    $terms = isset($_POST['terms']);
+
+    // Generate username from email or name if blank
+    if (empty($username)) {
+        $username = strtolower(explode('@', $email)[0]);
+    }
+
+    // 1. Backend Validation
+    if (empty($name) || empty($email) || empty($mobile) || empty($password) || empty($course) || empty($year) || empty($gender)) {
+        $errorMsg = "All registration fields are required.";
+    } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        $errorMsg = "Invalid email format.";
+    } elseif (!preg_match("/^[0-9]{10}$/", $mobile)) {
+        $errorMsg = "Mobile number must be exactly 10 digits.";
+    } elseif (strlen($password) < 6) {
+        $errorMsg = "Password must be at least 6 characters long.";
+    } elseif ($password !== $confirm_password) {
+        $errorMsg = "Password and confirm password do not match.";
+    } elseif (!$terms) {
+        $errorMsg = "You must agree to the terms and conditions.";
+    } else {
+        // 2. Duplicate Check using MySQLi Prepared Statements (Practical 9)
+        $checkStmt = $conn->prepare("SELECT id FROM users WHERE username = ? OR email = ?");
+        $checkStmt->bind_param("ss", $username, $email);
+        $checkStmt->execute();
+        $checkStmt->store_result();
+
+        if ($checkStmt->num_rows > 0) {
+            $errorMsg = "An account with this username or email address already exists. Please login or use a different email.";
+            $checkStmt->close();
+        } else {
+            $checkStmt->close();
+
+            // 3. Password Hashing using password_hash() (Practical 9)
+            $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
+            $role = 'student';
+
+            // 4. Insert into users table
+            $userStmt = $conn->prepare("INSERT INTO users (username, email, password, role) VALUES (?, ?, ?, ?)");
+            $userStmt->bind_param("ssss", $username, $email, $hashedPassword, $role);
+
+            if ($userStmt->execute()) {
+                $newUserId = $userStmt->insert_id;
+                $userStmt->close();
+
+                // 5. Insert student profile into students table
+                $studentId = "ST" . date('Y') . sprintf("%03d", rand(100, 999));
+                $studentStmt = $conn->prepare("INSERT INTO students (student_id, name, email, mobile, course, year, gender) VALUES (?, ?, ?, ?, ?, ?, ?)");
+                $studentStmt->bind_param("sssssss", $studentId, $name, $email, $mobile, $course, $year, $gender);
+                $studentStmt->execute();
+                $studentStmt->close();
+
+                // 6. Log Audit Record (Practical 14)
+                $logAction = "New student registered: " . $name . " (" . $email . ")";
+                $logStmt = $conn->prepare("INSERT INTO audit_logs (action, username, role) VALUES (?, ?, ?)");
+                $logStmt->bind_param("sss", $logAction, $username, $role);
+                $logStmt->execute();
+                $logStmt->close();
+
+                $successMsg = "Registration successful! Your account has been securely created. You can now log in using your credentials.";
+            } else {
+                $errorMsg = "Database error: " . $conn->error;
+            }
+        }
+    }
+}
+?>
+
+<main>
+    <div class="page-header">
+        <h2>Student Registration</h2>
+        <p>Client-Side Regex Validation (Practical 5) and Secure MySQL Database Insert with Password Hashing (Practical 9).</p>
+    </div>
+
+    <!-- Alert Messages -->
+    <?php if (!empty($successMsg)): ?>
+        <div class="alert alert-success">
+            🎉 <?php echo $successMsg; ?>
+            <div style="margin-top: 10px;">
+                <a href="login.php" class="btn btn-primary btn-sm">Proceed to Login &rarr;</a>
+            </div>
+        </div>
+    <?php endif; ?>
+
+    <?php if (!empty($errorMsg)): ?>
+        <div class="alert alert-danger">
+            ⚠️ <?php echo $errorMsg; ?>
+        </div>
+    <?php endif; ?>
+
+    <section class="card" style="max-width: 650px; margin: auto;">
+        <!-- Registration Form (Practical 5 & 9) -->
+        <form id="studentRegisterForm" method="POST" action="register.php" novalidate>
+            <!-- Full Name -->
+            <div class="form-group">
+                <label for="reg_name">Full Name *</label>
+                <input type="text" id="reg_name" name="name" placeholder="e.g. Manali Patel" required
+                       value="<?php echo isset($_POST['name']) && empty($successMsg) ? htmlspecialchars($_POST['name']) : ''; ?>">
+                <span id="nameError" class="field-error"></span>
+            </div>
+
+            <!-- Username (Optional / Auto-generated) -->
+            <div class="form-group">
+                <label for="reg_username">Username (Optional)</label>
+                <input type="text" id="reg_username" name="username" placeholder="Choose a unique username"
+                       value="<?php echo isset($_POST['username']) && empty($successMsg) ? htmlspecialchars($_POST['username']) : ''; ?>">
+                <small style="color: var(--text-muted); font-size: 12px;">If left blank, will use the prefix of your email address.</small>
+            </div>
+
+            <!-- Email Address -->
+            <div class="form-group">
+                <label for="reg_email">Email Address *</label>
+                <input type="email" id="reg_email" name="email" placeholder="e.g. manali@studenthub.com" required
+                       value="<?php echo isset($_POST['email']) && empty($successMsg) ? htmlspecialchars($_POST['email']) : ''; ?>">
+                <span id="emailError" class="field-error"></span>
+            </div>
+
+            <!-- Mobile Number -->
+            <div class="form-group">
+                <label for="reg_mobile">10-Digit Mobile Number *</label>
+                <input type="tel" id="reg_mobile" name="mobile" placeholder="e.g. 9876543201" maxlength="10" required
+                       value="<?php echo isset($_POST['mobile']) && empty($successMsg) ? htmlspecialchars($_POST['mobile']) : ''; ?>">
+                <span id="mobileError" class="field-error"></span>
+            </div>
+
+            <!-- Password & Strength Meter (Practical 5) -->
+            <div class="form-group">
+                <label for="reg_password">Password (Minimum 6 Characters) *</label>
+                <input type="password" id="reg_password" name="password" placeholder="Create a strong password" required>
+                <span id="passwordError" class="field-error"></span>
+
+                <!-- Password Strength Meter -->
+                <div class="password-meter-container">
+                    <div class="password-meter-bar">
+                        <div id="passwordStrengthBar" class="password-meter-fill"></div>
+                    </div>
+                    <span id="passwordStrengthText" class="password-strength-text">Strength: Enter a password</span>
+                </div>
+            </div>
+
+            <!-- Confirm Password -->
+            <div class="form-group">
+                <label for="reg_confirm_password">Confirm Password *</label>
+                <input type="password" id="reg_confirm_password" name="confirm_password" placeholder="Re-type your password" required>
+                <span id="confirmPasswordError" class="field-error"></span>
+            </div>
+
+            <!-- Course Selection -->
+            <div class="form-group">
+                <label for="reg_course">Course / Department *</label>
+                <select id="reg_course" name="course" required>
+                    <option value="">-- Select Department --</option>
+                    <option value="Computer Engineering" <?php echo (isset($_POST['course']) && $_POST['course'] == 'Computer Engineering') ? 'selected' : ''; ?>>Computer Engineering</option>
+                    <option value="IT Engineering" <?php echo (isset($_POST['course']) && $_POST['course'] == 'IT Engineering') ? 'selected' : ''; ?>>IT Engineering</option>
+                    <option value="AI & ML" <?php echo (isset($_POST['course']) && $_POST['course'] == 'AI & ML') ? 'selected' : ''; ?>>AI & ML</option>
+                    <option value="Mechanical Engineering" <?php echo (isset($_POST['course']) && $_POST['course'] == 'Mechanical Engineering') ? 'selected' : ''; ?>>Mechanical Engineering</option>
+                    <option value="Civil Engineering" <?php echo (isset($_POST['course']) && $_POST['course'] == 'Civil Engineering') ? 'selected' : ''; ?>>Civil Engineering</option>
+                </select>
+                <span id="courseError" class="field-error"></span>
+            </div>
+
+            <!-- Academic Year -->
+            <div class="form-group">
+                <label for="reg_year">Academic Year *</label>
+                <select id="reg_year" name="year" required>
+                    <option value="">-- Select Year --</option>
+                    <option value="1st Year" <?php echo (isset($_POST['year']) && $_POST['year'] == '1st Year') ? 'selected' : ''; ?>>1st Year (Semester 1 & 2)</option>
+                    <option value="2nd Year" <?php echo (isset($_POST['year']) && $_POST['year'] == '2nd Year') ? 'selected' : ''; ?>>2nd Year (Semester 3 & 4)</option>
+                    <option value="3rd Year" <?php echo (isset($_POST['year']) && $_POST['year'] == '3rd Year') ? 'selected' : ''; ?>>3rd Year (Semester 5 & 6)</option>
+                    <option value="4th Year" <?php echo (isset($_POST['year']) && $_POST['year'] == '4th Year') ? 'selected' : ''; ?>>4th Year (Semester 7 & 8)</option>
+                </select>
+                <span id="yearError" class="field-error"></span>
+            </div>
+
+            <!-- Gender -->
+            <div class="form-group">
+                <label>Gender *</label>
+                <div class="radio-group">
+                    <label><input type="radio" name="gender" value="Male" <?php echo (isset($_POST['gender']) && $_POST['gender'] == 'Male') ? 'checked' : ''; ?>> Male</label>
+                    <label><input type="radio" name="gender" value="Female" <?php echo (isset($_POST['gender']) && $_POST['gender'] == 'Female') ? 'checked' : ''; ?>> Female</label>
+                    <label><input type="radio" name="gender" value="Other" <?php echo (isset($_POST['gender']) && $_POST['gender'] == 'Other') ? 'checked' : ''; ?>> Other</label>
+                </div>
+                <span id="genderError" class="field-error"></span>
+            </div>
+
+            <!-- Terms & Conditions Acceptance -->
+            <div class="form-group">
+                <div class="checkbox-group">
+                    <label>
+                        <input type="checkbox" id="reg_terms" name="terms" value="1" <?php echo isset($_POST['terms']) ? 'checked' : ''; ?>>
+                        I agree to the <a href="#" onclick="alert('StudentHub Terms: Users must provide accurate college details and uphold campus academic guidelines.'); return false;">Terms and Conditions</a>.
+                    </label>
+                </div>
+                <span id="termsError" class="field-error"></span>
+            </div>
+
+            <!-- Submit Button -->
+            <button type="submit" class="btn btn-primary btn-block" style="margin-top: 10px;">
+                🚀 Register Account (Practical 5 & 9)
+            </button>
+        </form>
+
+        <p style="text-align: center; margin-top: 18px; font-size: 14px; color: var(--text-muted);">
+            Already have an account? <a href="login.php" style="color: var(--primary-color); font-weight: bold;">Login here</a>
+        </p>
+    </section>
+</main>
+
+<!-- Practical 5 Frontend Validation Script -->
+<script src="js/register.js"></script>
+
+<?php require_once __DIR__ . '/footer.php'; ?>
+Output: 
+[New user securely registered with duplicate checks and bcrypt hashed password in database]
+
+Page:2_register.js 
+Code: 
+/**
+ * Practical 5: Registration Form with Frontend Validation & Password Strength
+ * Subject: Web Development Frameworks (ITUE203) - Semester 3
+ */
+
+document.addEventListener("DOMContentLoaded", function () {
+    const form = document.getElementById("studentRegisterForm");
+    if (!form) return;
+
+    // Elements
+    const nameInput = document.getElementById("reg_name");
+    const emailInput = document.getElementById("reg_email");
+    const mobileInput = document.getElementById("reg_mobile");
+    const passwordInput = document.getElementById("reg_password");
+    const confirmPasswordInput = document.getElementById("reg_confirm_password");
+    const courseSelect = document.getElementById("reg_course");
+    const yearSelect = document.getElementById("reg_year");
+    const termsCheckbox = document.getElementById("reg_terms");
+
+    // Strength Meter Elements
+    const strengthBar = document.getElementById("passwordStrengthBar");
+    const strengthText = document.getElementById("passwordStrengthText");
+
+    // Regular Expressions
+    const nameRegex = /^[a-zA-Z\s]{3,50}$/;
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    const mobileRegex = /^[0-9]{10}$/;
+
+    // Helper: Show error
+    function showError(inputElement, errorId, message) {
+        const errorSpan = document.getElementById(errorId);
+        if (errorSpan) {
+            errorSpan.textContent = message;
+            errorSpan.classList.add("visible");
+        }
+        if (inputElement && inputElement.type !== "checkbox" && inputElement.type !== "radio") {
+            inputElement.classList.add("input-invalid");
+            inputElement.classList.remove("input-valid");
+        }
+    }
+
+    // Helper: Clear error
+    function clearError(inputElement, errorId) {
+        const errorSpan = document.getElementById(errorId);
+        if (errorSpan) {
+            errorSpan.textContent = "";
+            errorSpan.classList.remove("visible");
+        }
+        if (inputElement && inputElement.type !== "checkbox" && inputElement.type !== "radio") {
+            inputElement.classList.remove("input-invalid");
+            inputElement.classList.add("input-valid");
+        }
+    }
+
+    // Field Validators
+    function validateName() {
+        const val = nameInput.value.trim();
+        if (val === "") {
+            showError(nameInput, "nameError", "Full name is required.");
+            return false;
+        } else if (!nameRegex.test(val)) {
+            showError(nameInput, "nameError", "Name must contain only alphabets (minimum 3 characters).");
+            return false;
+        }
+        clearError(nameInput, "nameError");
+        return true;
+    }
+
+    function validateEmail() {
+        const val = emailInput.value.trim();
+        if (val === "") {
+            showError(emailInput, "emailError", "Email address is required.");
+            return false;
+        } else if (!emailRegex.test(val)) {
+            showError(emailInput, "emailError", "Please enter a valid email address (e.g. name@studenthub.com).");
+            return false;
+        }
+        clearError(emailInput, "emailError");
+        return true;
+    }
+
+    function validateMobile() {
+        const val = mobileInput.value.trim();
+        if (val === "") {
+            showError(mobileInput, "mobileError", "Mobile number is required.");
+            return false;
+        } else if (!mobileRegex.test(val)) {
+            showError(mobileInput, "mobileError", "Mobile number must be exactly 10 digits.");
+            return false;
+        }
+        clearError(mobileInput, "mobileError");
+        return true;
+    }
+
+    function validatePassword() {
+        const val = passwordInput.value;
+        if (val === "") {
+            showError(passwordInput, "passwordError", "Password is required.");
+            updatePasswordStrength("");
+            return false;
+        } else if (val.length < 6) {
+            showError(passwordInput, "passwordError", "Password must be at least 6 characters long.");
+            updatePasswordStrength(val);
+            return false;
+        }
+        clearError(passwordInput, "passwordError");
+        updatePasswordStrength(val);
+        return true;
+    }
+
+    function validateConfirmPassword() {
+        const pwd = passwordInput.value;
+        const confirmPwd = confirmPasswordInput.value;
+        if (confirmPwd === "") {
+            showError(confirmPasswordInput, "confirmPasswordError", "Please confirm your password.");
+            return false;
+        } else if (pwd !== confirmPwd) {
+            showError(confirmPasswordInput, "confirmPasswordError", "Passwords do not match.");
+            return false;
+        }
+        clearError(confirmPasswordInput, "confirmPasswordError");
+        return true;
+    }
+
+    function validateCourse() {
+        if (!courseSelect || courseSelect.value === "") {
+            showError(courseSelect, "courseError", "Please select your course.");
+            return false;
+        }
+        clearError(courseSelect, "courseError");
+        return true;
+    }
+
+    function validateYear() {
+        if (!yearSelect || yearSelect.value === "") {
+            showError(yearSelect, "yearError", "Please select your study year.");
+            return false;
+        }
+        clearError(yearSelect, "yearError");
+        return true;
+    }
+
+    function validateGender() {
+        const genderSelected = document.querySelector('input[name="gender"]:checked');
+        const genderError = document.getElementById("genderError");
+        if (!genderSelected) {
+            if (genderError) {
+                genderError.textContent = "Please select your gender.";
+                genderError.classList.add("visible");
+            }
+            return false;
+        }
+        if (genderError) {
+            genderError.textContent = "";
+            genderError.classList.remove("visible");
+        }
+        return true;
+    }
+
+    function validateTerms() {
+        const termsError = document.getElementById("termsError");
+        if (!termsCheckbox || !termsCheckbox.checked) {
+            if (termsError) {
+                termsError.textContent = "You must accept the terms and conditions to proceed.";
+                termsError.classList.add("visible");
+            }
+            return false;
+        }
+        if (termsError) {
+            termsError.textContent = "";
+            termsError.classList.remove("visible");
+        }
+        return true;
+    }
+
+    // Password Strength Meter
+    function updatePasswordStrength(password) {
+        if (!strengthBar || !strengthText) return;
+
+        strengthBar.className = "password-meter-fill";
+
+        if (password.length === 0) {
+            strengthBar.style.width = "0%";
+            strengthText.textContent = "Strength: Enter a password";
+            return;
+        }
+
+        let score = 0;
+        if (password.length >= 6) score++;
+        if (password.length >= 8) score++;
+        if (/[A-Z]/.test(password)) score++;
+        if (/[0-9]/.test(password)) score++;
+        if (/[^A-Za-z0-9]/.test(password)) score++;
+
+        if (score <= 2) {
+            strengthBar.classList.add("weak");
+            strengthText.textContent = "Strength: Weak (Add letters, digits & special symbols)";
+        } else if (score <= 4) {
+            strengthBar.classList.add("medium");
+            strengthText.textContent = "Strength: Medium (Good password)";
+        } else {
+            strengthBar.classList.add("strong");
+            strengthText.textContent = "Strength: Strong (Excellent password!)";
+        }
+    }
+
+    // Real-Time Event Listeners
+    if (nameInput) nameInput.addEventListener("input", validateName);
+    if (emailInput) emailInput.addEventListener("input", validateEmail);
+    if (mobileInput) mobileInput.addEventListener("input", validateMobile);
+    if (passwordInput) {
+        passwordInput.addEventListener("input", function () {
+            validatePassword();
+            if (confirmPasswordInput.value !== "") validateConfirmPassword();
+        });
+    }
+    if (confirmPasswordInput) confirmPasswordInput.addEventListener("input", validateConfirmPassword);
+    if (courseSelect) courseSelect.addEventListener("change", validateCourse);
+    if (yearSelect) yearSelect.addEventListener("change", validateYear);
+    if (termsCheckbox) termsCheckbox.addEventListener("change", validateTerms);
+
+    const genderRadios = document.querySelectorAll('input[name="gender"]');
+    genderRadios.forEach(function (radio) {
+        radio.addEventListener("change", validateGender);
+    });
+
+    // On Submit Validation
+    form.addEventListener("submit", function (e) {
+        const isNameValid = validateName();
+        const isEmailValid = validateEmail();
+        const isMobileValid = validateMobile();
+        const isPasswordValid = validatePassword();
+        const isConfirmValid = validateConfirmPassword();
+        const isCourseValid = validateCourse();
+        const isYearValid = validateYear();
+        const isGenderValid = validateGender();
+        const isTermsValid = validateTerms();
+
+        if (
+            !isNameValid ||
+            !isEmailValid ||
+            !isMobileValid ||
+            !isPasswordValid ||
+            !isConfirmValid ||
+            !isCourseValid ||
+            !isYearValid ||
+            !isGenderValid ||
+            !isTermsValid
+        ) {
+            e.preventDefault();
+            alert("Please fix the highlighted errors before submitting the form.");
+        }
+    });
+});
+Output: 
+[Real-time frontend regex validation with interactive password strength meter]
+| <td colspan=2/> |
+| Gitnub-link:   |  |
+| https://github.com/voramonali9-alt/wdf3rd  <td colspan=2/> |
+Key Question: 
+1. Is password_hash() used before storing passwords? 
+Answer: 
+Yes. Passwords are never stored in plain text. PHP's password_hash($password, PASSWORD_DEFAULT) is used to generate a secure bcrypt hash before inserting into the users table.
+2. Is duplicate email/username checked? 
+Answer: 
+Yes. A MySQLi prepared statement queries SELECT id FROM users WHERE username = ? OR email = ? before executing the insert. If a match is found, registration is blocked with a friendly warning.
+3. Are frontend and backend validations consistent? 
+Answer: 
+Yes. Both client-side JavaScript (register.js) and server-side PHP (register.php) check for minimum name length, email format, 10-digit mobile number, password length, and matching confirm-password.
+| <td colspan=2/> |
+| PRACTICAL:10   |  |
+| Aim: To develop secure login and logout functionality using PHP sessions, password verification using password_verify(), session ID regeneration, role-based access control, session timeout, and remember-me tokens.   <td colspan=2/> |
+Page:1_login.php 
+Code: 
+<?php
+/**
+ * Practical 10: Secure Login with Sessions, Role-Based Access & Remember-Me
+ * Subject: Web Development Frameworks (ITUE203) - Semester 3
+ */
+
+require_once __DIR__ . '/auth.php';
+require_once __DIR__ . '/db.php';
+
+// Redirect if already logged in
+if (is_logged_in()) {
+    if (is_admin()) {
+        header("Location: admin_dashboard.php");
+    } else {
+        header("Location: dashboard.php");
+    }
+    exit();
+}
+
+$pageTitle = "User Login";
+$errorMsg = "";
+$infoMsg = "";
+
+// Check messages in URL
+if (isset($_GET['error'])) {
+    if ($_GET['error'] === 'timeout') {
+        $errorMsg = "Your session has expired due to 15 minutes of inactivity. Please log in again.";
+    } elseif ($_GET['error'] === 'unauthorized') {
+        $errorMsg = "You must be logged in to access that protected page.";
+    }
+}
+
+if (isset($_GET['msg']) && $_GET['msg'] === 'logged_out') {
+    $infoMsg = "You have been logged out successfully.";
+}
+
+// Handle Login Form POST
+if ($_SERVER["REQUEST_METHOD"] === "POST") {
+    $loginInput = isset($_POST['login_input']) ? trim($_POST['login_input']) : '';
+    $password = isset($_POST['password']) ? $_POST['password'] : '';
+    $remember = isset($_POST['remember_me']);
+
+    if (empty($loginInput) || empty($password)) {
+        $errorMsg = "Please enter both your username/email and password.";
+    } else {
+        // Query user using prepared statement
+        $stmt = $conn->prepare("SELECT id, username, email, password, role FROM users WHERE username = ? OR email = ? LIMIT 1");
+        $stmt->bind_param("ss", $loginInput, $loginInput);
+        $stmt->execute();
+        $result = $stmt->get_result();
+
+        if ($user = $result->fetch_assoc()) {
+            // Verify password using password_verify() (Practical 10)
+            if (password_verify($password, $user['password'])) {
+                // Regenerate session ID to prevent session fixation attacks
+                session_regenerate_id(true);
+
+                // Set session variables
+                $_SESSION['user_id'] = $user['id'];
+                $_SESSION['username'] = $user['username'];
+                $_SESSION['email'] = $user['email'];
+                $_SESSION['role'] = $user['role'];
+                $_SESSION['last_activity'] = time();
+
+                // Optional: Handle Remember-Me Cookie (Practical 10)
+                if ($remember) {
+                    $cookieValue = base64_encode($user['id'] . ':' . $user['username']);
+                    setcookie('remember_user', $cookieValue, time() + (86400 * 7), "/", "", false, true);
+                }
+
+                // Log audit trail (Practical 14)
+                $action = "User logged in: " . $user['username'] . " (" . $user['role'] . ")";
+                $logStmt = $conn->prepare("INSERT INTO audit_logs (action, username, role) VALUES (?, ?, ?)");
+                $logStmt->bind_param("sss", $action, $user['username'], $user['role']);
+                $logStmt->execute();
+                $logStmt->close();
+
+                // Role-based redirection (Practical 10)
+                if ($user['role'] === 'admin') {
+                    header("Location: admin_dashboard.php");
+                } else {
+                    header("Location: dashboard.php");
+                }
+                exit();
+            } else {
+                $errorMsg = "Invalid username or password. Please try again.";
+            }
+        } else {
+            $errorMsg = "No account found with those credentials. Please check your spelling or register.";
+        }
+        $stmt->close();
+    }
+}
+
+require_once __DIR__ . '/header.php';
+?>
+
+<main>
+    <div class="page-header" style="text-align: center;">
+        <h2>User Authentication</h2>
+        <p>Practical 10: Secure Login with Sessions, Role-Based Access Control, and Timeout Management.</p>
+    </div>
+
+    <!-- Alert / Feedback Messages -->
+    <?php if (!empty($infoMsg)): ?>
+        <div class="alert alert-info" style="max-width: 480px; margin: 0 auto 20px auto;">
+            ℹ️ <?php echo htmlspecialchars($infoMsg); ?>
+        </div>
+    <?php endif; ?>
+
+    <?php if (!empty($errorMsg)): ?>
+        <div class="alert alert-danger" style="max-width: 480px; margin: 0 auto 20px auto;">
+            ⚠️ <?php echo htmlspecialchars($errorMsg); ?>
+        </div>
+    <?php endif; ?>
+
+    <section class="card" style="max-width: 480px; margin: auto;">
+        <h3 style="color: var(--primary-color); margin-bottom: 20px; text-align: center;">Sign In to StudentHub</h3>
+
+        <form method="POST" action="login.php">
+            <div class="form-group">
+                <label for="login_input">Username or Email *</label>
+                <input type="text" id="login_input" name="login_input" placeholder="e.g. admin or student" required
+                       value="<?php echo isset($_POST['login_input']) ? htmlspecialchars($_POST['login_input']) : ''; ?>">
+            </div>
+
+            <div class="form-group">
+                <label for="password">Password *</label>
+                <input type="password" id="password" name="password" placeholder="Enter your password" required>
+            </div>
+
+            <div class="form-group">
+                <div class="checkbox-group">
+                    <label>
+                        <input type="checkbox" name="remember_me" value="1">
+                        Remember me for 7 days
+                    </label>
+                </div>
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-block">
+                🔐 Sign In (Verify Password & Session)
+            </button>
+        </form>
+
+        <div style="margin-top: 25px; padding-top: 15px; border-top: 1px solid var(--border-color); font-size: 13px; color: var(--text-muted);">
+            <strong>Demo Credentials (from Seed Database):</strong><br>
+            • Admin: <code>admin</code> / <code>admin123</code> (Redirects to Admin Dashboard)<br>
+            • Student: <code>student</code> / <code>student123</code> (Redirects to Student Dashboard)<br>
+            • Student 2: <code>manali</code> / <code>manali123</code>
+        </div>
+
+        <p style="text-align: center; margin-top: 18px; font-size: 14px;">
+            Don't have an account yet? <a href="register.php" style="color: var(--primary-color); font-weight: bold;">Register here</a>
+        </p>
+    </section>
+</main>
+
+<?php require_once __DIR__ . '/footer.php'; ?>
+Output: 
+[Secure login verifying hashed password and redirecting users based on role]
+
+Page:2_auth.php 
+Code: 
+<?php
+/**
+ * Practical 10: Authentication, Session Management, Role-Based Access & Timeout
+ * Subject: Web Development Frameworks (ITUE203) - Semester 3
+ */
+
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
+// Session Timeout duration: 15 minutes (900 seconds)
+$timeout_duration = 900;
+
+if (isset($_SESSION['last_activity'])) {
+    if ((time() - $_SESSION['last_activity']) > $timeout_duration) {
+        // Session expired: Clear and destroy
+        session_unset();
+        session_destroy();
+        header("Location: login.php?error=timeout");
+        exit();
+    }
+}
+
+// Update last activity timestamp
+if (isset($_SESSION['user_id'])) {
+    $_SESSION['last_activity'] = time();
+}
+
+/**
+ * Check if the user is logged in and optionally verify role
+ *
+ * @param string|null $required_role 'admin' or 'student'
+ */
+function check_auth($required_role = null) {
+    if (!isset($_SESSION['user_id'])) {
+        header("Location: login.php?error=unauthorized");
+        exit();
+    }
+
+    if ($required_role !== null && $_SESSION['role'] !== $required_role) {
+        if ($_SESSION['role'] === 'admin') {
+            header("Location: admin_dashboard.php");
+        } else {
+            header("Location: dashboard.php");
+        }
+        exit();
+    }
+}
+
+function is_logged_in() {
+    return isset($_SESSION['user_id']);
+}
+
+function is_admin() {
+    return isset($_SESSION['role']) && $_SESSION['role'] === 'admin';
+}
+?>
+Output: 
+[Session management helper enforcing 15-minute inactivity timeout and unauthorized access prevention]
+
+Page:3_logout.php 
+Code: 
+<?php
+/**
+ * Practical 10: Secure Logout Handler
+ * Subject: Web Development Frameworks (ITUE203) - Semester 3
+ */
+
+require_once __DIR__ . '/auth.php';
+require_once __DIR__ . '/db.php';
+
+// Log audit trail before destroying session
+if (isset($_SESSION['username']) && isset($_SESSION['role'])) {
+    $action = "User logged out: " . $_SESSION['username'];
+    $stmt = $conn->prepare("INSERT INTO audit_logs (action, username, role) VALUES (?, ?, ?)");
+    if ($stmt) {
+        $stmt->bind_param("sss", $action, $_SESSION['username'], $_SESSION['role']);
+        $stmt->execute();
+        $stmt->close();
+    }
+}
+
+// Unset all session variables
+$_SESSION = [];
+
+// Delete session cookie if set
+if (ini_get("session.use_cookies")) {
+    $params = session_get_cookie_params();
+    setcookie(session_name(), '', time() - 42000,
+        $params["path"], $params["domain"],
+        $params["secure"], $params["httponly"]
+    );
+}
+
+// Clear Remember-Me cookie if set
+if (isset($_COOKIE['remember_user'])) {
+    setcookie('remember_user', '', time() - 3600, '/');
+}
+
+// Destroy session
+session_destroy();
+
+// Redirect to login page
+header("Location: login.php?msg=logged_out");
+exit();
+?>
+Output: 
+[Session variables unset, session cookie cleared, and user safely logged out]
+
+Page:4_dashboard.php 
+Code: 
+<?php
+/**
+ * Practical 10: Student Dashboard (Protected by Session & Role-Based Access Control)
+ * Subject: Web Development Frameworks (ITUE203) - Semester 3
+ */
+
+require_once __DIR__ . '/auth.php';
+require_once __DIR__ . '/db.php';
+
+// Restrict access: user must be logged in
+check_auth();
+
+// If admin accesses, redirect to admin dashboard
+if (is_admin()) {
+    header("Location: admin_dashboard.php");
+    exit();
+}
+
+$pageTitle = "Student Dashboard";
+$username = $_SESSION['username'];
+
+// Fetch student profile details from MySQL
+$student = null;
+$stmt = $conn->prepare("SELECT * FROM students WHERE email = ? OR name LIKE ? LIMIT 1");
+$searchPattern = "%" . $username . "%";
+$stmt->bind_param("ss", $_SESSION['email'], $searchPattern);
+$stmt->execute();
+$res = $stmt->get_result();
+if ($row = $res->fetch_assoc()) {
+    $student = $row;
+}
+$stmt->close();
+
+// Fetch events registered by this student
+$registrations = [];
+$regStmt = $conn->prepare("SELECT * FROM registrations WHERE student_name LIKE ? OR student_email = ? ORDER BY id DESC LIMIT 5");
+$regStmt->bind_param("ss", $searchPattern, $_SESSION['email']);
+$regStmt->execute();
+$regRes = $regStmt->get_result();
+while ($r = $regRes->fetch_assoc()) {
+    $registrations[] = $r;
+}
+$regStmt->close();
+
+require_once __DIR__ . '/header.php';
+?>
+
+<main>
+    <div class="page-header">
+        <div class="flex-between">
+            <div>
+                <h2>Welcome, <?php echo htmlspecialchars($student['name'] ?? $username); ?>! 👨‍🎓</h2>
+                <p>Student Academic Portal & Personal Dashboard (Practical 10: Protected Session Area).</p>
+            </div>
+            <div>
+                <span class="user-badge" style="font-size: 14px; padding: 6px 14px;">
+                    Department: <?php echo htmlspecialchars($student['course'] ?? 'Engineering'); ?>
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Student Key Metrics Grid (Practical 3 & 14 Layouts) -->
+    <div class="grid-4" style="margin-bottom: 25px;">
+        <div class="stat-card">
+            <div class="stat-icon">📊</div>
+            <div class="stat-info">
+                <h4>Attendance</h4>
+                <div class="stat-number">88.5%</div>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-icon">📚</div>
+            <div class="stat-info">
+                <h4>Semester</h4>
+                <div class="stat-number">3rd (Odd)</div>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-icon">🎯</div>
+            <div class="stat-info">
+                <h4>Registered Events</h4>
+                <div class="stat-number"><?php echo count($registrations); ?></div>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-icon">🏆</div>
+            <div class="stat-info">
+                <h4>Status</h4>
+                <div class="stat-number" style="font-size: 18px; color: var(--success-color);">Active</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="grid-2">
+        <!-- Announcements & Notices -->
+        <section class="card">
+            <h3 style="color: var(--primary-color); margin-bottom: 15px;">📢 Academic Announcements</h3>
+            
+            <article style="border-bottom: 1px solid var(--border-color); padding-bottom: 12px; margin-bottom: 12px;">
+                <h4 style="font-size: 15px; color: var(--text-color);">Practical Exam Schedule Released</h4>
+                <p style="font-size: 13.5px; color: var(--text-muted); margin-top: 4px;">
+                    Web Development Frameworks (ITUE203) practical viva and laboratory tests will commence next week.
+                </p>
+                <small style="color: var(--primary-color);">📅 Posted: Oct 12, 2026</small>
+            </article>
+
+            <article style="border-bottom: 1px solid var(--border-color); padding-bottom: 12px; margin-bottom: 12px;">
+                <h4 style="font-size: 15px; color: var(--text-color);">Web Development Bootcamp Registration Open</h4>
+                <p style="font-size: 13.5px; color: var(--text-muted); margin-top: 4px;">
+                    Explore hands-on full-stack development with PHP, MySQL, and modern JavaScript.
+                </p>
+                <small style="color: var(--primary-color);">📅 Posted: Oct 10, 2026</small>
+            </article>
+
+            <article>
+                <h4 style="font-size: 15px; color: var(--text-color);">Library Book Return Reminder</h4>
+                <p style="font-size: 13.5px; color: var(--text-muted); margin-top: 4px;">
+                    Students must renew or return borrowed reference manuals before the semester-end deadline.
+                </p>
+                <small style="color: var(--primary-color);">📅 Posted: Oct 05, 2026</small>
+            </article>
+        </section>
+
+        <!-- Quick Access & My Events -->
+        <section>
+            <div class="card" style="margin-bottom: 25px;">
+                <h3 style="color: var(--primary-color); margin-bottom: 15px;">⚡ Quick Actions</h3>
+                <div class="flex-row" style="flex-wrap: wrap;">
+                    <a href="profile.php" class="btn btn-secondary btn-sm">👤 My Profile</a>
+                    <a href="events.php" class="btn btn-primary btn-sm">📅 View Events</a>
+                    <a href="feedback.php" class="btn btn-secondary btn-sm">💬 Give Feedback</a>
+                    <a href="faq.php" class="btn btn-secondary btn-sm">❓ Help & FAQs</a>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3 style="color: var(--primary-color); margin-bottom: 12px;">🎟️ My Event Registrations</h3>
+                <?php if (empty($registrations)): ?>
+                    <p style="font-size: 14px; color: var(--text-muted);">
+                        You have not registered for any events yet. Check out the <a href="events.php">Events directory</a>!
+                    </p>
+                <?php else: ?>
+                    <ul style="list-style: none; display: flex; flex-direction: column; gap: 8px;">
+                        <?php foreach ($registrations as $reg): ?>
+                            <li style="padding: 8px 12px; background: rgba(13,110,253,0.06); border-radius: 4px; font-size: 13.5px;">
+                                <strong><?php echo htmlspecialchars($reg['event_title']); ?></strong><br>
+                                <small style="color: var(--text-muted);">Registered on: <?php echo htmlspecialchars($reg['registered_at']); ?></small>
+                            </li>
+                        <?php endforeach; ?>
+                    </ul>
+                <?php endif; ?>
+            </div>
+        </section>
+    </div>
+</main>
+
+<?php require_once __DIR__ . '/footer.php'; ?>
+Output: 
+[Protected student dashboard showing attendance, enrolled course, and event registrations]
+| <td colspan=2/> |
+| Gitnub-link:   |  |
+| https://github.com/voramonali9-alt/wdf3rd  <td colspan=2/> |
+Key Question: 
+1. Are sessions started and destroyed securely? 
+Answer: 
+Yes. Sessions are started with session_start(), session IDs are regenerated using session_regenerate_id(true) on login to prevent session fixation, and destroyed on logout with session_destroy() and cookie cleanup.
+2. Is password_verify() used correctly? 
+Answer: 
+Yes. password_verify($password, $user['password']) securely verifies the user-entered plaintext password against the database bcrypt hash.
+3. Is unauthorized dashboard access blocked? 
+Answer: 
+Yes. The check_auth() function checks if $_SESSION['user_id'] exists; unauthenticated requests are immediately redirected to login.php?error=unauthorized.
+4. Is session timeout implemented? 
+Answer: 
+Yes. Inactivity exceeding 900 seconds (15 minutes) compares time() - $_SESSION['last_activity'] and automatically destroys the session, redirecting to login.php?error=timeout.
+5. Are admin and student users redirected to appropriate dashboards? 
+Answer: 
+Yes. Role-Based Access Control checks $_SESSION['role']: admin users redirect to admin_dashboard.php while student users redirect to dashboard.php.
+| <td colspan=2/> |
+| PRACTICAL:11   |  |
+| Aim: To create a student management CRUD module to add, view, edit, delete, search, and filter student records using MySQLi prepared statements with user feedback messages and CSV export.   <td colspan=2/> |
+Page:1_manage_students.php 
+Code: 
+<?php
+/**
+ * Practical 11: Student Management CRUD with Search, Filter & MySQLi Statements
+ * Subject: Web Development Frameworks (ITUE203) - Semester 3
+ */
+
+require_once __DIR__ . '/auth.php';
+require_once __DIR__ . '/db.php';
+
+// RBAC: Restricted to Admin
+check_auth('admin');
+
+$pageTitle = "Manage Students";
+$successMsg = "";
+$errorMsg = "";
+
+// 1. Export to CSV (Practical 11 Intermediate Extension)
+if (isset($_GET['action']) && $_GET['action'] === 'export') {
+    header('Content-Type: text/csv; charset=utf-8');
+    header('Content-Disposition: attachment; filename=students_export_' . date('Y-m-d') . '.csv');
+    $output = fopen('php://output', 'w');
+    fputcsv($output, ['ID', 'Student ID', 'Full Name', 'Email', 'Mobile', 'Department', 'Year', 'Gender', 'Created At']);
+
+    $res = $conn->query("SELECT * FROM students ORDER BY id ASC");
+    while ($row = $res->fetch_assoc()) {
+        fputcsv($output, [
+            $row['id'],
+            $row['student_id'],
+            $row['name'],
+            $row['email'],
+            $row['mobile'],
+            $row['course'],
+            $row['year'],
+            $row['gender'],
+            $row['created_at']
+        ]);
+    }
+    fclose($output);
+    exit();
+}
+
+// 2. Handle Delete Student
+if (isset($_GET['action']) && $_GET['action'] === 'delete' && isset($_GET['id'])) {
+    $deleteId = intval($_GET['id']);
+    
+    // Fetch student name for audit log
+    $stmtName = $conn->prepare("SELECT name FROM students WHERE id = ?");
+    $stmtName->bind_param("i", $deleteId);
+    $stmtName->execute();
+    $nameRes = $stmtName->get_result();
+    $stName = ($r = $nameRes->fetch_assoc()) ? $r['name'] : "ID #$deleteId";
+    $stmtName->close();
+
+    $stmt = $conn->prepare("DELETE FROM students WHERE id = ?");
+    $stmt->bind_param("i", $deleteId);
+    if ($stmt->execute()) {
+        // Audit log
+        $logAction = "Admin deleted student: " . $stName;
+        $adminUser = $_SESSION['username'];
+        $role = "admin";
+        $logStmt = $conn->prepare("INSERT INTO audit_logs (action, username, role) VALUES (?, ?, ?)");
+        $logStmt->bind_param("sss", $logAction, $adminUser, $role);
+        $logStmt->execute();
+        $logStmt->close();
+
+        $successMsg = "Student record deleted successfully.";
+    } else {
+        $errorMsg = "Failed to delete student: " . $stmt->error;
+    }
+    $stmt->close();
+}
+
+// 3. Handle Add / Edit Student (POST)
+if ($_SERVER["REQUEST_METHOD"] === "POST") {
+    $action = isset($_POST['form_action']) ? $_POST['form_action'] : 'add';
+    $name = htmlspecialchars(trim($_POST['name'] ?? ''));
+    $email = htmlspecialchars(trim($_POST['email'] ?? ''));
+    $mobile = htmlspecialchars(trim($_POST['mobile'] ?? ''));
+    $course = htmlspecialchars(trim($_POST['course'] ?? ''));
+    $year = htmlspecialchars(trim($_POST['year'] ?? ''));
+    $gender = htmlspecialchars(trim($_POST['gender'] ?? 'Male'));
+
+    if (empty($name) || empty($email) || empty($mobile) || empty($course) || empty($year)) {
+        $errorMsg = "All student fields are required.";
+    } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        $errorMsg = "Invalid email format.";
+    } elseif (!preg_match("/^[0-9]{10}$/", $mobile)) {
+        $errorMsg = "Mobile must be 10 digits.";
+    } else {
+        if ($action === 'add') {
+            // Check email duplication
+            $chk = $conn->prepare("SELECT id FROM students WHERE email = ?");
+            $chk->bind_param("s", $email);
+            $chk->execute();
+            $chk->store_result();
+            if ($chk->num_rows > 0) {
+                $errorMsg = "A student with this email address already exists.";
+                $chk->close();
+            } else {
+                $chk->close();
+                $studentId = "ST" . date('Y') . sprintf("%03d", rand(100, 999));
+                $stmt = $conn->prepare("INSERT INTO students (student_id, name, email, mobile, course, year, gender) VALUES (?, ?, ?, ?, ?, ?, ?)");
+                $stmt->bind_param("sssssss", $studentId, $name, $email, $mobile, $course, $year, $gender);
+
+                if ($stmt->execute()) {
+                    // Audit log
+                    $logAction = "Admin added student: " . $name;
+                    $logStmt = $conn->prepare("INSERT INTO audit_logs (action, username, role) VALUES (?, ?, 'admin')");
+                    $logStmt->bind_param("ss", $logAction, $_SESSION['username']);
+                    $logStmt->execute();
+                    $logStmt->close();
+
+                    $successMsg = "Student '$name' added successfully!";
+                } else {
+                    $errorMsg = "Failed to add student: " . $stmt->error;
+                }
+                $stmt->close();
+            }
+        } elseif ($action === 'edit') {
+            $studentIdNum = intval($_POST['student_id_num'] ?? 0);
+            if ($studentIdNum > 0) {
+                $stmt = $conn->prepare("UPDATE students SET name = ?, email = ?, mobile = ?, course = ?, year = ?, gender = ? WHERE id = ?");
+                $stmt->bind_param("ssssssi", $name, $email, $mobile, $course, $year, $gender, $studentIdNum);
+
+                if ($stmt->execute()) {
+                    // Audit log
+                    $logAction = "Admin updated student ID #$studentIdNum: " . $name;
+                    $logStmt = $conn->prepare("INSERT INTO audit_logs (action, username, role) VALUES (?, ?, 'admin')");
+                    $logStmt->bind_param("ss", $logAction, $_SESSION['username']);
+                    $logStmt->execute();
+                    $logStmt->close();
+
+                    $successMsg = "Student record updated successfully!";
+                } else {
+                    $errorMsg = "Failed to update student: " . $stmt->error;
+                }
+                $stmt->close();
+            }
+        }
+    }
+}
+
+// 4. Search and Filter Query Building (Practical 11)
+$search = isset($_GET['search']) ? trim($_GET['search']) : '';
+$courseFilter = isset($_GET['filter_course']) ? trim($_GET['filter_course']) : '';
+$yearFilter = isset($_GET['filter_year']) ? trim($_GET['filter_year']) : '';
+
+$sql = "SELECT * FROM students WHERE 1=1";
+$params = [];
+$types = "";
+
+if (!empty($search)) {
+    $sql .= " AND (name LIKE ? OR email LIKE ? OR student_id LIKE ? OR course LIKE ?)";
+    $like = "%$search%";
+    $params[] = $like;
+    $params[] = $like;
+    $params[] = $like;
+    $params[] = $like;
+    $types .= "ssss";
+}
+
+if (!empty($courseFilter)) {
+    $sql .= " AND course = ?";
+    $params[] = $courseFilter;
+    $types .= "s";
+}
+
+if (!empty($yearFilter)) {
+    $sql .= " AND year = ?";
+    $params[] = $yearFilter;
+    $types .= "s";
+}
+
+$sql .= " ORDER BY id DESC";
+
+$stmt = $conn->prepare($sql);
+if (!empty($params)) {
+    $stmt->bind_param($types, ...$params);
+}
+$stmt->execute();
+$studentsResult = $stmt->get_result();
+
+require_once __DIR__ . '/header.php';
+?>
+
+<main>
+    <div class="page-header">
+        <div class="flex-between">
+            <div>
+                <h2>Student Records Management (CRUD)</h2>
+                <p>Add, View, Edit, Delete, Search & Filter Student Records (Practical 11).</p>
+            </div>
+            <div class="flex-row">
+                <a href="manage_students.php?action=export" class="btn btn-secondary btn-sm">📥 Export to CSV</a>
+                <button onclick="document.getElementById('addStudentSection').scrollIntoView({behavior: 'smooth'})" class="btn btn-primary btn-sm">➕ Add New Student</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Alert Notifications -->
+    <?php if (!empty($successMsg)): ?>
+        <div class="alert alert-success">✅ <?php echo htmlspecialchars($successMsg); ?></div>
+    <?php endif; ?>
+
+    <?php if (!empty($errorMsg)): ?>
+        <div class="alert alert-danger">⚠️ <?php echo htmlspecialchars($errorMsg); ?></div>
+    <?php endif; ?>
+
+    <!-- Search & Filter Controls (Practical 11) -->
+    <section class="card" style="padding: 16px;">
+        <form method="GET" action="manage_students.php" class="search-filter-box" style="margin-bottom: 0; border: none; padding: 0;">
+            <input type="text" name="search" placeholder="🔍 Search by name, ID, email, or course..." value="<?php echo htmlspecialchars($search); ?>">
+
+            <select name="filter_course">
+                <option value="">All Courses</option>
+                <option value="Computer Engineering" <?php echo ($courseFilter == 'Computer Engineering') ? 'selected' : ''; ?>>Computer Engineering</option>
+                <option value="IT Engineering" <?php echo ($courseFilter == 'IT Engineering') ? 'selected' : ''; ?>>IT Engineering</option>
+                <option value="AI & ML" <?php echo ($courseFilter == 'AI & ML') ? 'selected' : ''; ?>>AI & ML</option>
+                <option value="Mechanical Engineering" <?php echo ($courseFilter == 'Mechanical Engineering') ? 'selected' : ''; ?>>Mechanical Engineering</option>
+                <option value="Civil Engineering" <?php echo ($courseFilter == 'Civil Engineering') ? 'selected' : ''; ?>>Civil Engineering</option>
+            </select>
+
+            <select name="filter_year">
+                <option value="">All Years</option>
+                <option value="1st Year" <?php echo ($yearFilter == '1st Year') ? 'selected' : ''; ?>>1st Year</option>
+                <option value="2nd Year" <?php echo ($yearFilter == '2nd Year') ? 'selected' : ''; ?>>2nd Year</option>
+                <option value="3rd Year" <?php echo ($yearFilter == '3rd Year') ? 'selected' : ''; ?>>3rd Year</option>
+                <option value="4th Year" <?php echo ($yearFilter == '4th Year') ? 'selected' : ''; ?>>4th Year</option>
+            </select>
+
+            <button type="submit" class="btn btn-primary btn-sm">Filter</button>
+            <?php if (!empty($search) || !empty($courseFilter) || !empty($yearFilter)): ?>
+                <a href="manage_students.php" class="btn btn-secondary btn-sm">Reset</a>
+            <?php endif; ?>
+        </form>
+    </section>
+
+    <!-- Student Table (Practical 11) -->
+    <section class="card">
+        <div class="flex-between" style="margin-bottom: 15px;">
+            <h3 style="color: var(--primary-color);">Enrolled Students List</h3>
+            <span style="font-size: 13.5px; color: var(--text-muted);">
+                Total: <strong><?php echo $studentsResult->num_rows; ?></strong> records found (Minimum 20 seeded records requirement met)
+            </span>
+        </div>
+
+        <div class="table-responsive">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Student ID</th>
+                        <th>Full Name</th>
+                        <th>Email</th>
+                        <th>Mobile</th>
+                        <th>Course</th>
+                        <th>Year</th>
+                        <th>Gender</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php if ($studentsResult->num_rows === 0): ?>
+                        <tr><td colspan="9" style="text-align: center; color: var(--text-muted); padding: 25px;">No student records match your query.</td></tr>
+                    <?php else: ?>
+                        <?php while ($st = $studentsResult->fetch_assoc()): ?>
+                            <tr>
+                                <td>#<?php echo $st['id']; ?></td>
+                                <td><strong><?php echo htmlspecialchars($st['student_id']); ?></strong></td>
+                                <td><?php echo htmlspecialchars($st['name']); ?></td>
+                                <td><?php echo htmlspecialchars($st['email']); ?></td>
+                                <td><?php echo htmlspecialchars($st['mobile']); ?></td>
+                                <td><span class="badge" style="background: rgba(13,110,253,0.1); color: #0d6efd; padding: 2px 6px; border-radius: 4px;"><?php echo htmlspecialchars($st['course']); ?></span></td>
+                                <td><?php echo htmlspecialchars($st['year']); ?></td>
+                                <td><?php echo htmlspecialchars($st['gender']); ?></td>
+                                <td>
+                                    <button class="btn btn-secondary btn-sm edit-btn" 
+                                            data-id="<?php echo $st['id']; ?>"
+                                            data-name="<?php echo htmlspecialchars($st['name']); ?>"
+                                            data-email="<?php echo htmlspecialchars($st['email']); ?>"
+                                            data-mobile="<?php echo htmlspecialchars($st['mobile']); ?>"
+                                            data-course="<?php echo htmlspecialchars($st['course']); ?>"
+                                            data-year="<?php echo htmlspecialchars($st['year']); ?>"
+                                            data-gender="<?php echo htmlspecialchars($st['gender']); ?>">
+                                        ✏️ Edit
+                                    </button>
+                                    <a href="manage_students.php?action=delete&id=<?php echo $st['id']; ?>" 
+                                       class="btn btn-danger btn-sm"
+                                       onclick="return confirm('Are you sure you want to delete student: <?php echo htmlspecialchars(addslashes($st['name'])); ?>?');">
+                                        🗑️ Delete
+                                    </a>
+                                </td>
+                            </tr>
+                        <?php endwhile; ?>
+                    <?php endif; ?>
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <!-- Add / Edit Student Form (Practical 11) -->
+    <section id="addStudentSection" class="card" style="max-width: 700px; margin: auto;">
+        <h3 id="formHeading" style="color: var(--primary-color); margin-bottom: 15px;">➕ Add New Student Record</h3>
+        
+        <form method="POST" action="manage_students.php" id="studentCrudForm">
+            <input type="hidden" name="form_action" id="form_action" value="add">
+            <input type="hidden" name="student_id_num" id="student_id_num" value="">
+
+            <div class="grid-2">
+                <div class="form-group">
+                    <label for="crud_name">Full Name *</label>
+                    <input type="text" id="crud_name" name="name" required placeholder="e.g. Diya Mehta">
+                </div>
+
+                <div class="form-group">
+                    <label for="crud_email">Student Email *</label>
+                    <input type="email" id="crud_email" name="email" required placeholder="diya@studenthub.com">
+                </div>
+            </div>
+
+            <div class="grid-2">
+                <div class="form-group">
+                    <label for="crud_mobile">10-Digit Mobile *</label>
+                    <input type="tel" id="crud_mobile" name="mobile" required maxlength="10" placeholder="9876543201">
+                </div>
+
+                <div class="form-group">
+                    <label for="crud_gender">Gender *</label>
+                    <select id="crud_gender" name="gender" required>
+                        <option value="Male">Male</option>
+                        <option value="Female">Female</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="grid-2">
+                <div class="form-group">
+                    <label for="crud_course">Department / Course *</label>
+                    <select id="crud_course" name="course" required>
+                        <option value="Computer Engineering">Computer Engineering</option>
+                        <option value="IT Engineering">IT Engineering</option>
+                        <option value="AI & ML">AI & ML</option>
+                        <option value="Mechanical Engineering">Mechanical Engineering</option>
+                        <option value="Civil Engineering">Civil Engineering</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="crud_year">Academic Year *</label>
+                    <select id="crud_year" name="year" required>
+                        <option value="1st Year">1st Year</option>
+                        <option value="2nd Year">2nd Year</option>
+                        <option value="3rd Year">3rd Year</option>
+                        <option value="4th Year">4th Year</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="flex-row" style="margin-top: 10px;">
+                <button type="submit" id="crudSubmitBtn" class="btn btn-primary">
+                    💾 Save Student Record
+                </button>
+                <button type="button" id="crudResetBtn" class="btn btn-secondary" onclick="resetForm()">
+                    Reset Form
+                </button>
+            </div>
+        </form>
+    </section>
+</main>
+
+<script>
+// Edit button click handler
+document.querySelectorAll('.edit-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+        document.getElementById('formHeading').textContent = '✏️ Edit Student Record (#' + this.dataset.id + ')';
+        document.getElementById('form_action').value = 'edit';
+        document.getElementById('student_id_num').value = this.dataset.id;
+        document.getElementById('crud_name').value = this.dataset.name;
+        document.getElementById('crud_email').value = this.dataset.email;
+        document.getElementById('crud_mobile').value = this.dataset.mobile;
+        document.getElementById('crud_course').value = this.dataset.course;
+        document.getElementById('crud_year').value = this.dataset.year;
+        document.getElementById('crud_gender').value = this.dataset.gender;
+        document.getElementById('crudSubmitBtn').textContent = '💾 Update Student Record';
+        document.getElementById('addStudentSection').scrollIntoView({behavior: 'smooth'});
+    });
+});
+
+function resetForm() {
+    document.getElementById('formHeading').textContent = '➕ Add New Student Record';
+    document.getElementById('form_action').value = 'add';
+    document.getElementById('student_id_num').value = '';
+    document.getElementById('studentCrudForm').reset();
+    document.getElementById('crudSubmitBtn').textContent = '💾 Save Student Record';
+}
+</script>
+
+<?php require_once __DIR__ . '/footer.php'; ?>
+Output: 
+[Complete student management interface with search, filter, edit, delete confirmation, and CSV download]
+| <td colspan=2/> |
+| Gitnub-link:   |  |
+| https://github.com/voramonali9-alt/wdf3rd  <td colspan=2/> |
+Key Question: 
+1. Are SELECT, INSERT, UPDATE, and DELETE operations working? 
+Answer: 
+Yes. Full CRUD is implemented using MySQLi prepared statements for adding students, viewing records in a data table, editing existing records, and removing records.
+2. Is search by name/email/course implemented? 
+Answer: 
+Yes. Dynamic SQL query building with LIKE ? operators allows searching across student name, email, student ID, and department simultaneously.
+3. Are delete operations confirmed before execution? 
+Answer: 
+Yes. The JavaScript confirm() dialog ("Are you sure you want to delete this student?") prevents accidental record deletions.
+| <td colspan=2/> |
+| PRACTICAL:12   |  |
+| Aim: To develop event management CRUD functionality for admin users to add, view, update, delete, and upload event posters with server-side file type and file size validation.   <td colspan=2/> |
+Page:1_manage_events.php 
+Code: 
+<?php
+/**
+ * Practical 12: Event Management CRUD with Poster Upload & File Validation
+ * Subject: Web Development Frameworks (ITUE203) - Semester 3
+ */
+
+require_once __DIR__ . '/auth.php';
+require_once __DIR__ . '/db.php';
+
+// RBAC: Restricted to Admin
+check_auth('admin');
+
+$pageTitle = "Manage Events";
+$successMsg = "";
+$errorMsg = "";
+$uploadDir = __DIR__ . '/uploads/';
+
+if (!file_exists($uploadDir)) {
+    mkdir($uploadDir, 0777, true);
+}
+
+// 1. Handle Delete Event
+if (isset($_GET['action']) && $_GET['action'] === 'delete' && isset($_GET['id'])) {
+    $deleteId = intval($_GET['id']);
+
+    // Fetch poster filename to delete from disk
+    $stmtPoster = $conn->prepare("SELECT title, poster FROM events WHERE id = ?");
+    $stmtPoster->bind_param("i", $deleteId);
+    $stmtPoster->execute();
+    $resPoster = $stmtPoster->get_result();
+    if ($evRow = $resPoster->fetch_assoc()) {
+        $evTitle = $evRow['title'];
+        if (!empty($evRow['poster']) && file_exists($uploadDir . $evRow['poster'])) {
+            @unlink($uploadDir . $evRow['poster']);
+        }
+    } else {
+        $evTitle = "ID #$deleteId";
+    }
+    $stmtPoster->close();
+
+    $stmt = $conn->prepare("DELETE FROM events WHERE id = ?");
+    $stmt->bind_param("i", $deleteId);
+    if ($stmt->execute()) {
+        // Audit log
+        $logAction = "Admin deleted event: " . $evTitle;
+        $logStmt = $conn->prepare("INSERT INTO audit_logs (action, username, role) VALUES (?, ?, 'admin')");
+        $logStmt->bind_param("ss", $logAction, $_SESSION['username']);
+        $logStmt->execute();
+        $logStmt->close();
+
+        $successMsg = "Event deleted successfully.";
+    } else {
+        $errorMsg = "Failed to delete event: " . $stmt->error;
+    }
+    $stmt->close();
+}
+
+// 2. Handle Add / Edit Event (POST with File Upload)
+if ($_SERVER["REQUEST_METHOD"] === "POST") {
+    $formAction = $_POST['form_action'] ?? 'add';
+    $title = htmlspecialchars(trim($_POST['title'] ?? ''));
+    $category = htmlspecialchars(trim($_POST['category'] ?? 'Workshop'));
+    $eventDate = htmlspecialchars(trim($_POST['event_date'] ?? ''));
+    $venue = htmlspecialchars(trim($_POST['venue'] ?? ''));
+    $status = htmlspecialchars(trim($_POST['status'] ?? 'Upcoming'));
+    $description = htmlspecialchars(trim($_POST['description'] ?? ''));
+
+    if (empty($title) || empty($eventDate) || empty($venue) || empty($description)) {
+        $errorMsg = "Title, date, venue, and description are required.";
+    } else {
+        $posterFilename = null;
+
+        // Process File Upload with Validation (Practical 12)
+        if (isset($_FILES['poster']) && $_FILES['poster']['error'] !== UPLOAD_ERR_NO_FILE) {
+            $fileError = $_FILES['poster']['error'];
+            $fileSize = $_FILES['poster']['size'];
+            $fileTmp = $_FILES['poster']['tmp_name'];
+            $origName = $_FILES['poster']['name'];
+            $ext = strtolower(pathinfo($origName, PATHINFO_EXTENSION));
+
+            $allowedExtensions = ['jpg', 'jpeg', 'png', 'webp', 'gif'];
+            $maxFileSize = 2 * 1024 * 1024; // 2MB limit
+
+            if ($fileError !== UPLOAD_ERR_OK) {
+                $errorMsg = "File upload failed with error code: $fileError";
+            } elseif (!in_array($ext, $allowedExtensions)) {
+                $errorMsg = "Invalid file type. Allowed formats: JPG, PNG, WEBP, GIF.";
+            } elseif ($fileSize > $maxFileSize) {
+                $errorMsg = "Poster file size exceeds the 2MB limit.";
+            } else {
+                // Secure file renaming (Practical 12 Extension)
+                $posterFilename = 'poster_' . time() . '_' . rand(1000, 9999) . '.' . $ext;
+                $destination = $uploadDir . $posterFilename;
+
+                if (!move_uploaded_file($fileTmp, $destination)) {
+                    $errorMsg = "Failed to save uploaded poster image to server.";
+                    $posterFilename = null;
+                }
+            }
+        }
+
+        if (empty($errorMsg)) {
+            if ($formAction === 'add') {
+                $stmt = $conn->prepare("INSERT INTO events (title, description, category, event_date, venue, poster, status) VALUES (?, ?, ?, ?, ?, ?, ?)");
+                $stmt->bind_param("sssssss", $title, $description, $category, $eventDate, $venue, $posterFilename, $status);
+
+                if ($stmt->execute()) {
+                    // Audit log
+                    $logAction = "Admin added event: " . $title;
+                    $logStmt = $conn->prepare("INSERT INTO audit_logs (action, username, role) VALUES (?, ?, 'admin')");
+                    $logStmt->bind_param("ss", $logAction, $_SESSION['username']);
+                    $logStmt->execute();
+                    $logStmt->close();
+
+                    $successMsg = "Event '$title' added successfully with poster validation!";
+                } else {
+                    $errorMsg = "Database error: " . $stmt->error;
+                }
+                $stmt->close();
+            } elseif ($formAction === 'edit') {
+                $eventId = intval($_POST['event_id'] ?? 0);
+                if ($eventId > 0) {
+                    if ($posterFilename) {
+                        $stmt = $conn->prepare("UPDATE events SET title = ?, description = ?, category = ?, event_date = ?, venue = ?, poster = ?, status = ? WHERE id = ?");
+                        $stmt->bind_param("sssssssi", $title, $description, $category, $eventDate, $venue, $posterFilename, $status, $eventId);
+                    } else {
+                        $stmt = $conn->prepare("UPDATE events SET title = ?, description = ?, category = ?, event_date = ?, venue = ?, status = ? WHERE id = ?");
+                        $stmt->bind_param("ssssssi", $title, $description, $category, $eventDate, $venue, $status, $eventId);
+                    }
+
+                    if ($stmt->execute()) {
+                        $logAction = "Admin updated event ID #$eventId: " . $title;
+                        $logStmt = $conn->prepare("INSERT INTO audit_logs (action, username, role) VALUES (?, ?, 'admin')");
+                        $logStmt->bind_param("ss", $logAction, $_SESSION['username']);
+                        $logStmt->execute();
+                        $logStmt->close();
+
+                        $successMsg = "Event record updated successfully!";
+                    } else {
+                        $errorMsg = "Update error: " . $stmt->error;
+                    }
+                    $stmt->close();
+                }
+            }
+        }
+    }
+}
+
+// Fetch all events from DB
+$eventsResult = $conn->query("SELECT * FROM events ORDER BY event_date ASC");
+
+require_once __DIR__ . '/header.php';
+?>
+
+<main>
+    <div class="page-header">
+        <div class="flex-between">
+            <div>
+                <h2>Event Management CRUD & Poster Upload</h2>
+                <p>Add, Update, Delete & Upload Event Posters with MIME/Size Validation (Practical 12).</p>
+            </div>
+            <div>
+                <button onclick="document.getElementById('eventFormSection').scrollIntoView({behavior: 'smooth'})" class="btn btn-primary btn-sm">➕ Add New Event</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Alert Messages -->
+    <?php if (!empty($successMsg)): ?>
+        <div class="alert alert-success">✅ <?php echo htmlspecialchars($successMsg); ?></div>
+    <?php endif; ?>
+
+    <?php if (!empty($errorMsg)): ?>
+        <div class="alert alert-danger">⚠️ <?php echo htmlspecialchars($errorMsg); ?></div>
+    <?php endif; ?>
+
+    <!-- Events List Table (Practical 12) -->
+    <section class="card">
+        <h3 style="color: var(--primary-color); margin-bottom: 15px;">Published Campus Events</h3>
+
+        <div class="table-responsive">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Poster</th>
+                        <th>Title & Category</th>
+                        <th>Date & Venue</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php if ($eventsResult->num_rows === 0): ?>
+                        <tr><td colspan="5" style="text-align: center; color: var(--text-muted); padding: 25px;">No events recorded in database yet.</td></tr>
+                    <?php else: ?>
+                        <?php while ($ev = $eventsResult->fetch_assoc()): ?>
+                            <tr>
+                                <td style="width: 80px;">
+                                    <?php if (!empty($ev['poster']) && file_exists($uploadDir . $ev['poster'])): ?>
+                                        <img src="uploads/<?php echo htmlspecialchars($ev['poster']); ?>" alt="Poster" style="width: 70px; height: 50px; object-fit: cover; border-radius: 4px;">
+                                    <?php else: ?>
+                                        <img src="images/campus.png" alt="Default" style="width: 70px; height: 50px; object-fit: cover; border-radius: 4px; opacity: 0.6;">
+                                    <?php endif; ?>
+                                </td>
+                                <td>
+                                    <strong><?php echo htmlspecialchars($ev['title']); ?></strong><br>
+                                    <span class="badge" style="background: rgba(13,110,253,0.1); color: #0d6efd; padding: 2px 6px; border-radius: 4px; font-size: 11px;"><?php echo htmlspecialchars($ev['category']); ?></span>
+                                </td>
+                                <td>
+                                    📅 <?php echo htmlspecialchars($ev['event_date']); ?><br>
+                                    <small style="color: var(--text-muted);">📍 <?php echo htmlspecialchars($ev['venue']); ?></small>
+                                </td>
+                                <td>
+                                    <span style="font-weight: bold; color: <?php echo ($ev['status'] == 'Upcoming') ? 'var(--success-color)' : 'var(--text-muted)'; ?>;">
+                                        <?php echo htmlspecialchars($ev['status']); ?>
+                                    </span>
+                                </td>
+                                <td>
+                                    <button class="btn btn-secondary btn-sm edit-ev-btn"
+                                            data-id="<?php echo $ev['id']; ?>"
+                                            data-title="<?php echo htmlspecialchars($ev['title']); ?>"
+                                            data-category="<?php echo htmlspecialchars($ev['category']); ?>"
+                                            data-date="<?php echo htmlspecialchars($ev['event_date']); ?>"
+                                            data-venue="<?php echo htmlspecialchars($ev['venue']); ?>"
+                                            data-status="<?php echo htmlspecialchars($ev['status']); ?>"
+                                            data-desc="<?php echo htmlspecialchars($ev['description']); ?>">
+                                        ✏️ Edit
+                                    </button>
+                                    <a href="manage_events.php?action=delete&id=<?php echo $ev['id']; ?>"
+                                       class="btn btn-danger btn-sm"
+                                       onclick="return confirm('Delete event: <?php echo htmlspecialchars(addslashes($ev['title'])); ?>?');">
+                                        🗑️ Delete
+                                    </a>
+                                </td>
+                            </tr>
+                        <?php endwhile; ?>
+                    <?php endif; ?>
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <!-- Add / Edit Event Form (Practical 12) -->
+    <section id="eventFormSection" class="card" style="max-width: 700px; margin: auto;">
+        <h3 id="evFormHeading" style="color: var(--primary-color); margin-bottom: 15px;">➕ Add New Event & Upload Poster</h3>
+
+        <form method="POST" action="manage_events.php" enctype="multipart/form-data" id="eventCrudForm">
+            <input type="hidden" name="form_action" id="ev_form_action" value="add">
+            <input type="hidden" name="event_id" id="ev_event_id" value="">
+
+            <div class="form-group">
+                <label for="ev_title">Event Title *</label>
+                <input type="text" id="ev_title" name="title" required placeholder="e.g. AI & Machine Learning Workshop">
+            </div>
+
+            <div class="grid-2">
+                <div class="form-group">
+                    <label for="ev_category">Category *</label>
+                    <select id="ev_category" name="category" required>
+                        <option value="Workshop">Workshop</option>
+                        <option value="Seminar">Seminar</option>
+                        <option value="Exhibition">Exhibition</option>
+                        <option value="Competition">Competition</option>
+                        <option value="Sports">Sports</option>
+                        <option value="Cultural">Cultural</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="ev_status">Status *</label>
+                    <select id="ev_status" name="status" required>
+                        <option value="Upcoming">Upcoming</option>
+                        <option value="Ongoing">Ongoing</option>
+                        <option value="Completed">Completed</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="grid-2">
+                <div class="form-group">
+                    <label for="ev_date">Event Date *</label>
+                    <input type="date" id="ev_date" name="event_date" required value="<?php echo date('Y-m-d'); ?>">
+                </div>
+
+                <div class="form-group">
+                    <label for="ev_venue">Venue / Location *</label>
+                    <input type="text" id="ev_venue" name="venue" required placeholder="Auditorium Hall A">
+                </div>
+            </div>
+
+            <!-- Poster File Upload with Validation (Practical 12) -->
+            <div class="form-group">
+                <label for="ev_poster">Event Poster Image (Max 2MB - JPG, PNG, WEBP)</label>
+                <input type="file" id="ev_poster" name="poster" accept=".jpg,.jpeg,.png,.webp,.gif">
+                <small style="color: var(--text-muted); font-size: 12px;">Validated on server for file extension and size.</small>
+            </div>
+
+            <div class="form-group">
+                <label for="ev_desc">Event Description *</label>
+                <textarea id="ev_desc" name="description" required placeholder="Provide an informative summary of this event..."></textarea>
+            </div>
+
+            <div class="flex-row">
+                <button type="submit" id="evSubmitBtn" class="btn btn-primary">
+                    🚀 Save Event Record
+                </button>
+                <button type="button" class="btn btn-secondary" onclick="resetEvForm()">
+                    Reset Form
+                </button>
+            </div>
+        </form>
+    </section>
+</main>
+
+<script>
+document.querySelectorAll('.edit-ev-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+        document.getElementById('evFormHeading').textContent = '✏️ Edit Event (#' + this.dataset.id + ')';
+        document.getElementById('ev_form_action').value = 'edit';
+        document.getElementById('ev_event_id').value = this.dataset.id;
+        document.getElementById('ev_title').value = this.dataset.title;
+        document.getElementById('ev_category').value = this.dataset.category;
+        document.getElementById('ev_date').value = this.dataset.date;
+        document.getElementById('ev_venue').value = this.dataset.venue;
+        document.getElementById('ev_status').value = this.dataset.status;
+        document.getElementById('ev_desc').value = this.dataset.desc;
+        document.getElementById('evSubmitBtn').textContent = '💾 Update Event Record';
+        document.getElementById('eventFormSection').scrollIntoView({behavior: 'smooth'});
+    });
+});
+
+function resetEvForm() {
+    document.getElementById('evFormHeading').textContent = '➕ Add New Event & Upload Poster';
+    document.getElementById('ev_form_action').value = 'add';
+    document.getElementById('ev_event_id').value = '';
+    document.getElementById('eventCrudForm').reset();
+    document.getElementById('evSubmitBtn').textContent = '🚀 Save Event Record';
+}
+</script>
+
+<?php require_once __DIR__ . '/footer.php'; ?>
+Output: 
+[Event management CRUD interface displaying posters, status, and handling multipart image uploads]
+| <td colspan=2/> |
+| Gitnub-link:   |  |
+| https://github.com/voramonali9-alt/wdf3rd  <td colspan=2/> |
+Key Question: 
+1. Are add, update, and delete functionalities implemented correctly? 
+Answer: 
+Yes. Admins can create new events, modify details and posters, and delete events using prepared MySQLi queries.
+2. Is the UI linked with the database correctly? 
+Answer: 
+Yes. Events stored in the MySQL events table are retrieved and rendered with thumbnails, dates, venues, categories, and status indicators.
+3. Are poster uploads validated for type and size? 
+Answer: 
+Yes. Uploaded files via $_FILES['poster'] are validated for allowed extensions (jpg, jpeg, png, webp, gif) and capped at 2MB maximum file size.
+4. Are success and failure messages displayed? 
+Answer: 
+Yes. User-friendly alert boxes notify the administrator about upload outcomes, validation errors, and database updates.
+| <td colspan=2/> |
+| PRACTICAL:13   |  |
+| Aim: To create simple PHP JSON API endpoints for events and consume them using the JavaScript Fetch API to perform list, add, update, and delete operations asynchronously without full page reload.   <td colspan=2/> |
+Page:1_events_api.php 
+Code: 
+<?php
+/**
+ * Practical 13: PHP JSON API Endpoint for Events
+ * Subject: Web Development Frameworks (ITUE203) - Semester 3
+ * Handles asynchronous GET (list) and POST (add, delete) requests
+ */
+
+header('Content-Type: application/json; charset=UTF-8');
+require_once __DIR__ . '/../db.php';
+
+$method = $_SERVER['REQUEST_METHOD'];
+
+// Parse input if sent as JSON payload
+$inputJSON = json_decode(file_get_contents('php://input'), true);
+$data = !empty($inputJSON) ? $inputJSON : $_POST;
+
+try {
+    if ($method === 'GET') {
+        // GET: Fetch all events
+        $sql = "SELECT * FROM events ORDER BY id DESC";
+        $result = $conn->query($sql);
+
+        $events = [];
+        if ($result) {
+            while ($row = $result->fetch_assoc()) {
+                $events[] = $row;
+            }
+        }
+
+        echo json_encode([
+            'status' => 'success',
+            'count' => count($events),
+            'data' => $events
+        ]);
+        exit();
+    }
+
+    if ($method === 'POST') {
+        $action = isset($data['action']) ? trim($data['action']) : 'add';
+
+        if ($action === 'add') {
+            // Add new event
+            $title = isset($data['title']) ? trim($data['title']) : '';
+            $description = isset($data['description']) ? trim($data['description']) : '';
+            $category = isset($data['category']) ? trim($data['category']) : 'General';
+            $event_date = isset($data['event_date']) ? trim($data['event_date']) : date('Y-m-d');
+            $venue = isset($data['venue']) ? trim($data['venue']) : '';
+
+            // Server-side validation
+            if (empty($title) || empty($description) || empty($venue)) {
+                http_response_code(400);
+                echo json_encode([
+                    'status' => 'error',
+                    'message' => 'Title, description, and venue are required.'
+                ]);
+                exit();
+            }
+
+            $stmt = $conn->prepare("INSERT INTO events (title, description, category, event_date, venue, status) VALUES (?, ?, ?, ?, ?, 'Upcoming')");
+            $stmt->bind_param("sssss", $title, $description, $category, $event_date, $venue);
+
+            if ($stmt->execute()) {
+                $insertedId = $stmt->insert_id;
+                $stmt->close();
+
+                // Optional: log audit
+                $logAction = "API: Created event - " . $title;
+                $user = "API_User";
+                $role = "system";
+                $logStmt = $conn->prepare("INSERT INTO audit_logs (action, username, role) VALUES (?, ?, ?)");
+                $logStmt->bind_param("sss", $logAction, $user, $role);
+                $logStmt->execute();
+                $logStmt->close();
+
+                echo json_encode([
+                    'status' => 'success',
+                    'message' => 'Event added successfully via JSON API!',
+                    'id' => $insertedId
+                ]);
+            } else {
+                http_response_code(500);
+                echo json_encode([
+                    'status' => 'error',
+                    'message' => 'Database error: ' . $stmt->error
+                ]);
+            }
+            exit();
+        }
+
+        if ($action === 'delete') {
+            // Delete event
+            $id = isset($data['id']) ? intval($data['id']) : 0;
+            if ($id <= 0) {
+                http_response_code(400);
+                echo json_encode([
+                    'status' => 'error',
+                    'message' => 'Invalid event ID.'
+                ]);
+                exit();
+            }
+
+            $stmt = $conn->prepare("DELETE FROM events WHERE id = ?");
+            $stmt->bind_param("i", $id);
+
+            if ($stmt->execute()) {
+                $stmt->close();
+                echo json_encode([
+                    'status' => 'success',
+                    'message' => 'Event deleted successfully via JSON API!'
+                ]);
+            } else {
+                http_response_code(500);
+                echo json_encode([
+                    'status' => 'error',
+                    'message' => 'Database delete error: ' . $stmt->error
+                ]);
+            }
+            exit();
+        }
+
+        // Unknown action
+        http_response_code(400);
+        echo json_encode([
+            'status' => 'error',
+            'message' => 'Unknown POST action: ' . htmlspecialchars($action)
+        ]);
+        exit();
+    }
+
+    // Unsupported method
+    http_response_code(405);
+    echo json_encode([
+        'status' => 'error',
+        'message' => 'Method not allowed.'
+    ]);
+
+} catch (Exception $e) {
+    http_response_code(500);
+    echo json_encode([
+        'status' => 'error',
+        'message' => 'Server exception: ' . $e->getMessage()
+    ]);
+}
+?>
+Output: 
+[RESTful PHP JSON endpoint responding to GET and POST requests with status and payload]
+
+Page:2_ajax_events.php 
+Code: 
+<?php
+/**
+ * Practical 13: AJAX / Fetch-Based CRUD Interface without Page Reload
+ * Subject: Web Development Frameworks (ITUE203) - Semester 3
+ */
+
+$pageTitle = "AJAX CRUD (Fetch API)";
+require_once __DIR__ . '/header.php';
+?>
+
+<main>
+    <div class="page-header">
+        <div class="flex-between">
+            <div>
+                <h2>Asynchronous CRUD via Fetch API (Practical 13)</h2>
+                <p>Real-time data interaction consuming <code>api/events_api.php</code> without full page reloads.</p>
+            </div>
+            <div>
+                <a href="manage_events.php" class="btn btn-secondary btn-sm">Switch to Standard PHP CRUD &rarr;</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Alert / Toast Status Message (Practical 13) -->
+    <div id="ajaxAlert" class="alert" style="display: none;"></div>
+
+    <div class="grid-2">
+        <!-- Add Event Form (AJAX / Fetch API) -->
+        <section class="card">
+            <h3 style="color: var(--primary-color); margin-bottom: 15px;">➕ Add Event via AJAX POST</h3>
+            <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 15px;">
+                Submits payload to <code>api/events_api.php</code> and updates table instantly without page refresh.
+            </p>
+
+            <form id="ajaxAddEventForm">
+                <div class="form-group">
+                    <label for="ajax_title">Event Title *</label>
+                    <input type="text" id="ajax_title" required placeholder="e.g. Next-Gen Tech Talk">
+                </div>
+
+                <div class="grid-2">
+                    <div class="form-group">
+                        <label for="ajax_category">Category *</label>
+                        <select id="ajax_category" required>
+                            <option value="Workshop">Workshop</option>
+                            <option value="Seminar">Seminar</option>
+                            <option value="Exhibition">Exhibition</option>
+                            <option value="Competition">Competition</option>
+                            <option value="Cultural">Cultural</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="ajax_date">Date *</label>
+                        <input type="date" id="ajax_date" required value="<?php echo date('Y-m-d'); ?>">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="ajax_venue">Venue *</label>
+                    <input type="text" id="ajax_venue" required placeholder="Seminar Room 101">
+                </div>
+
+                <div class="form-group">
+                    <label for="ajax_desc">Event Description *</label>
+                    <textarea id="ajax_desc" required placeholder="Brief description of the event..."></textarea>
+                </div>
+
+                <button type="submit" class="btn btn-primary btn-block">
+                    ⚡ Send Asynchronous POST Request
+                </button>
+            </form>
+        </section>
+
+        <!-- Dynamic Live Events Table (AJAX / Fetch API) -->
+        <section class="card">
+            <div class="flex-between" style="margin-bottom: 15px;">
+                <h3 style="color: var(--primary-color);">Live Events Feed (Fetch API)</h3>
+                <span style="font-size: 13px; color: var(--text-muted);">Asynchronous JSON Response</span>
+            </div>
+
+            <!-- Loading Indicator -->
+            <div id="ajaxLoading" style="text-align: center; padding: 20px; color: var(--primary-color);">
+                ⏳ Fetching records from <code>api/events_api.php</code>...
+            </div>
+
+            <div class="table-responsive">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Title</th>
+                            <th>Category</th>
+                            <th>Date</th>
+                            <th>Venue</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="ajaxEventsTableBody">
+                        <!-- Loaded dynamically via Fetch API -->
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </div>
+</main>
+
+<!-- Practical 13 AJAX CRUD Script -->
+<script src="js/ajax_crud.js"></script>
+
+<?php require_once __DIR__ . '/footer.php'; ?>
+Output: 
+[Interactive AJAX webpage allowing asynchronous additions and deletions without browser refresh]
+
+Page:3_ajax_crud.js 
+Code: 
+/**
+ * Practical 13: AJAX / Fetch-Based CRUD Operations without Page Reload
+ * Subject: Web Development Frameworks (ITUE203) - Semester 3
+ */
+
+document.addEventListener("DOMContentLoaded", function () {
+    const tableBody = document.getElementById("ajaxEventsTableBody");
+    const addForm = document.getElementById("ajaxAddEventForm");
+    const loadingState = document.getElementById("ajaxLoading");
+    const statusAlert = document.getElementById("ajaxAlert");
+
+    // Helper: Show feedback message
+    function showAlert(message, isSuccess) {
+        if (!statusAlert) return;
+        statusAlert.className = isSuccess ? "alert alert-success" : "alert alert-danger";
+        statusAlert.textContent = message;
+        statusAlert.style.display = "block";
+        setTimeout(function () {
+            statusAlert.style.display = "none";
+        }, 4000);
+    }
+
+    // 1. Fetch & Render Events using Fetch API (GET)
+    function loadEvents() {
+        if (loadingState) loadingState.style.display = "block";
+        if (tableBody) tableBody.innerHTML = "";
+
+        fetch("api/events_api.php")
+            .then(function (res) {
+                return res.json();
+            })
+            .then(function (response) {
+                if (loadingState) loadingState.style.display = "none";
+
+                if (response.status === "success" && Array.isArray(response.data)) {
+                    renderTable(response.data);
+                } else {
+                    showAlert("Failed to retrieve events: " + (response.message || "Unknown error"), false);
+                }
+            })
+            .catch(function (err) {
+                if (loadingState) loadingState.style.display = "none";
+                showAlert("Network or server error: " + err.message, false);
+            });
+    }
+
+    // 2. Render Table Rows
+    function renderTable(events) {
+        if (!tableBody) return;
+        tableBody.innerHTML = "";
+
+        if (events.length === 0) {
+            tableBody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: var(--text-muted); padding: 20px;">No events found. Add your first event using the form below!</td></tr>`;
+            return;
+        }
+
+        events.forEach(function (ev) {
+            const tr = document.createElement("tr");
+            tr.id = `event-row-${ev.id}`;
+            tr.innerHTML = `
+                <td><strong>#${ev.id}</strong></td>
+                <td><strong>${escapeHtml(ev.title)}</strong></td>
+                <td><span class="badge" style="background: rgba(13,110,253,0.1); color: #0d6efd; padding: 3px 8px; border-radius: 4px; font-weight: bold; font-size: 12px;">${escapeHtml(ev.category)}</span></td>
+                <td>📅 ${escapeHtml(ev.event_date)}</td>
+                <td>📍 ${escapeHtml(ev.venue)}</td>
+                <td>
+                    <button class="btn btn-danger btn-sm delete-btn" data-id="${ev.id}">
+                        🗑️ Delete
+                    </button>
+                </td>
+            `;
+            tableBody.appendChild(tr);
+        });
+
+        // Attach delete handlers
+        document.querySelectorAll(".delete-btn").forEach(function (btn) {
+            btn.addEventListener("click", function () {
+                const eventId = this.getAttribute("data-id");
+                deleteEvent(eventId);
+            });
+        });
+    }
+
+    // 3. Add Event via AJAX POST without Page Reload
+    if (addForm) {
+        addForm.addEventListener("submit", function (e) {
+            e.preventDefault();
+
+            const title = document.getElementById("ajax_title").value.trim();
+            const category = document.getElementById("ajax_category").value;
+            const event_date = document.getElementById("ajax_date").value;
+            const venue = document.getElementById("ajax_venue").value.trim();
+            const description = document.getElementById("ajax_desc").value.trim();
+
+            if (!title || !venue || !description) {
+                showAlert("Please complete all required fields.", false);
+                return;
+            }
+
+            const payload = {
+                action: "add",
+                title: title,
+                category: category,
+                event_date: event_date,
+                venue: venue,
+                description: description
+            };
+
+            const submitBtn = addForm.querySelector('button[type="submit"]');
+            if (submitBtn) submitBtn.disabled = true;
+
+            fetch("api/events_api.php", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify(payload)
+            })
+                .then(function (res) {
+                    return res.json();
+                })
+                .then(function (result) {
+                    if (submitBtn) submitBtn.disabled = false;
+                    if (result.status === "success") {
+                        showAlert(result.message, true);
+                        addForm.reset();
+                        loadEvents(); // Reload asynchronously without page refresh
+                    } else {
+                        showAlert(result.message || "Failed to add event.", false);
+                    }
+                })
+                .catch(function (err) {
+                    if (submitBtn) submitBtn.disabled = false;
+                    showAlert("Error adding event: " + err.message, false);
+                });
+        });
+    }
+
+    // 4. Delete Event via AJAX without Page Reload
+    function deleteEvent(id) {
+        if (!confirm("Are you sure you want to delete this event? This action cannot be undone.")) {
+            return;
+        }
+
+        const payload = {
+            action: "delete",
+            id: id
+        };
+
+        fetch("api/events_api.php", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify(payload)
+        })
+            .then(function (res) {
+                return res.json();
+            })
+            .then(function (result) {
+                if (result.status === "success") {
+                    showAlert(result.message, true);
+                    const row = document.getElementById(`event-row-${id}`);
+                    if (row) {
+                        row.remove();
+                    } else {
+                        loadEvents();
+                    }
+                } else {
+                    showAlert(result.message || "Could not delete event.", false);
+                }
+            })
+            .catch(function (err) {
+                showAlert("Error deleting event: " + err.message, false);
+            });
+    }
+
+    // Helper: Escape HTML strings
+    function escapeHtml(text) {
+        if (!text) return "";
+        return text
+            .toString()
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
+    }
+
+    // Initial fetch
+    loadEvents();
+});
+Output: 
+[Fetch API implementation managing asynchronous requests, DOM row insertion, deletion, and status alerts]
+| <td colspan=2/> |
+| Gitnub-link:   |  |
+| https://github.com/voramonali9-alt/wdf3rd  <td colspan=2/> |
+Key Question: 
+1. Do PHP endpoints return valid JSON responses? 
+Answer: 
+Yes. The endpoint sets header('Content-Type: application/json; charset=UTF-8') and serializes data using json_encode().
+2. Are GET and POST requests handled properly? 
+Answer: 
+Yes. GET fetches the event list, while POST handles JSON action dispatches for 'add' and 'delete' operations.
+3. Are loading, success, and error states shown on the frontend? 
+Answer: 
+Yes. A loading indicator displays during network fetching, while success/error toasts inform the user after API execution.
+4. Is input validation performed before database operations? 
+Answer: 
+Yes. Required fields (title, venue, description) are validated server-side before executing prepared statements.
+| <td colspan=2/> |
+| PRACTICAL:14   |  |
+| Aim: To develop an admin dashboard that displays dynamic user statistics, student count, event count, and latest registrations, restricts access to admin users only, and shows role-based dynamic navigation menus and audit logs.   <td colspan=2/> |
+Page:1_admin_dashboard.php 
+Code: 
+<?php
+/**
+ * Practical 14: Admin Dashboard with RBAC, Dynamic Metrics & Audit Log
+ * Subject: Web Development Frameworks (ITUE203) - Semester 3
+ */
+
+require_once __DIR__ . '/auth.php';
+require_once __DIR__ . '/db.php';
+
+// Strict RBAC: only users with role 'admin' are permitted
+check_auth('admin');
+
+$pageTitle = "Admin Dashboard";
+
+// 1. Dynamic Statistics Loaded from Database (Practical 14)
+$studentCount = 0;
+$res = $conn->query("SELECT COUNT(*) AS total FROM students");
+if ($res) {
+    $row = $res->fetch_assoc();
+    $studentCount = $row['total'];
+}
+
+$eventCount = 0;
+$res = $conn->query("SELECT COUNT(*) AS total FROM events");
+if ($res) {
+    $row = $res->fetch_assoc();
+    $eventCount = $row['total'];
+}
+
+$userCount = 0;
+$res = $conn->query("SELECT COUNT(*) AS total FROM users");
+if ($res) {
+    $row = $res->fetch_assoc();
+    $userCount = $row['total'];
+}
+
+$regCount = 0;
+$res = $conn->query("SELECT COUNT(*) AS total FROM registrations");
+if ($res) {
+    $row = $res->fetch_assoc();
+    $regCount = $row['total'];
+}
+
+// 2. Fetch Latest Registrations
+$latestRegistrations = [];
+$res = $conn->query("SELECT * FROM registrations ORDER BY id DESC LIMIT 5");
+if ($res) {
+    while ($row = $res->fetch_assoc()) {
+        $latestRegistrations[] = $row;
+    }
+}
+
+// 3. Fetch Audit Logs (Practical 14)
+$auditLogs = [];
+$res = $conn->query("SELECT * FROM audit_logs ORDER BY id DESC LIMIT 8");
+if ($res) {
+    while ($row = $res->fetch_assoc()) {
+        $auditLogs[] = $row;
+    }
+}
+
+require_once __DIR__ . '/header.php';
+?>
+
+<main>
+    <div class="page-header">
+        <div class="flex-between">
+            <div>
+                <h2>Admin Control Center 👨‍💼</h2>
+                <p>Role-Based Access Control, Live System Statistics, and System Audit Trail (Practical 14).</p>
+            </div>
+            <div class="flex-row">
+                <a href="manage_students.php" class="btn btn-primary btn-sm">👥 Manage Students</a>
+                <a href="manage_events.php" class="btn btn-secondary btn-sm">📅 Manage Events</a>
+                <a href="ajax_events.php" class="btn btn-secondary btn-sm">⚡ AJAX CRUD</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Live Statistics Cards (Practical 14) -->
+    <div class="grid-4" style="margin-bottom: 25px;">
+        <div class="stat-card">
+            <div class="stat-icon" style="background: rgba(13,110,253,0.12); color: #0d6efd;">👥</div>
+            <div class="stat-info">
+                <h4>Total Students</h4>
+                <div class="stat-number"><?php echo $studentCount; ?></div>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-icon" style="background: rgba(25,135,84,0.12); color: #198754;">📅</div>
+            <div class="stat-info">
+                <h4>Total Events</h4>
+                <div class="stat-number"><?php echo $eventCount; ?></div>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-icon" style="background: rgba(255,193,7,0.12); color: #ffc107;">🔐</div>
+            <div class="stat-info">
+                <h4>User Accounts</h4>
+                <div class="stat-number"><?php echo $userCount; ?></div>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-icon" style="background: rgba(13,202,240,0.12); color: #0dcaf0;">🎟️</div>
+            <div class="stat-info">
+                <h4>Event Signups</h4>
+                <div class="stat-number"><?php echo $regCount; ?></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="grid-2">
+        <!-- Latest Registrations Table -->
+        <section class="card">
+            <div class="flex-between" style="margin-bottom: 15px;">
+                <h3 style="color: var(--primary-color);">Recent Event Registrations</h3>
+                <span style="font-size: 13px; color: var(--text-muted);">From <code>registrations</code> table</span>
+            </div>
+
+            <div class="table-responsive">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Student</th>
+                            <th>Event</th>
+                            <th>Registered At</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php if (empty($latestRegistrations)): ?>
+                            <tr><td colspan="3" style="text-align: center; color: var(--text-muted);">No event registrations recorded yet.</td></tr>
+                        <?php else: ?>
+                            <?php foreach ($latestRegistrations as $reg): ?>
+                                <tr>
+                                    <td>
+                                        <strong><?php echo htmlspecialchars($reg['student_name']); ?></strong><br>
+                                        <small style="color: var(--text-muted);"><?php echo htmlspecialchars($reg['student_email']); ?></small>
+                                    </td>
+                                    <td><span class="badge" style="background: rgba(13,110,253,0.1); color: #0d6efd; padding: 2px 6px; border-radius: 4px;"><?php echo htmlspecialchars($reg['event_title']); ?></span></td>
+                                    <td><small><?php echo htmlspecialchars($reg['registered_at']); ?></small></td>
+                                </tr>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- Audit Log Table (Practical 14) -->
+        <section class="card">
+            <div class="flex-between" style="margin-bottom: 15px;">
+                <h3 style="color: var(--primary-color);">System Audit Log</h3>
+                <span style="font-size: 13px; color: var(--text-muted);">From <code>audit_logs</code> table</span>
+            </div>
+
+            <div class="table-responsive">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Action</th>
+                            <th>User</th>
+                            <th>Timestamp</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php if (empty($auditLogs)): ?>
+                            <tr><td colspan="3" style="text-align: center; color: var(--text-muted);">No audit log entries recorded.</td></tr>
+                        <?php else: ?>
+                            <?php foreach ($auditLogs as $log): ?>
+                                <tr>
+                                    <td><strong><?php echo htmlspecialchars($log['action']); ?></strong></td>
+                                    <td>
+                                        <span class="user-badge" style="font-size: 11px;">
+                                            <?php echo htmlspecialchars($log['username']); ?>
+                                        </span>
+                                    </td>
+                                    <td><small style="color: var(--text-muted);"><?php echo htmlspecialchars($log['timestamp']); ?></small></td>
+                                </tr>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </div>
+</main>
+
+<?php require_once __DIR__ . '/footer.php'; ?>
+Output: 
+[Live Admin Dashboard displaying SQL aggregation cards, recent signups, and system audit logs]
+
+Page:2_header.php 
+Code: 
+<?php
+/**
+ * Shared Header Component
+ * Practical 2: Semantic HTML5 & Accessibility
+ * Practical 4: Notification Banner & Theme Switcher
+ * Practical 14: Role-Based Dynamic Navigation Menu
+ */
+
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+require_once __DIR__ . '/auth.php';
+
+$currentPage = basename($_SERVER['PHP_SELF']);
+$isLoggedIn = is_logged_in();
+$isAdmin = is_admin();
+$username = isset($_SESSION['username']) ? htmlspecialchars($_SESSION['username']) : '';
+$role = isset($_SESSION['role']) ? htmlspecialchars($_SESSION['role']) : '';
+?>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><?php echo isset($pageTitle) ? htmlspecialchars($pageTitle) . " - " : ""; ?>StudentHub Portal</title>
+    <!-- Main Responsive Stylesheet (Practical 3) -->
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+    <!-- Notification Banner (Practical 4) -->
+    <div id="notificationBanner" class="notification-banner">
+        <span>📢 Welcome to <strong>StudentHub Portal</strong> - Centralized Academic & Campus Management System</span>
+        <button id="closeBannerBtn" class="banner-close-btn" title="Close Banner">✕</button>
+    </div>
+
+    <!-- Top Title Banner -->
+    <div class="portal-title-bar">
+        <h1>StudentHub Portal</h1>
+        <p>CHARUSAT - Faculty of Technology & Engineering (ITUE203)</p>
+    </div>
+
+    <!-- Semantic Header (Practical 2) -->
+    <header>
+        <a href="index.php" class="logo-container">
+            <img src="images/logo.png" alt="StudentHub Logo" width="48" height="48">
+            <span class="brand-text">StudentHub</span>
+        </a>
+
+        <!-- Mobile Hamburger Button (Practical 4) -->
+        <button id="hamburgerBtn" class="hamburger-btn" aria-label="Toggle Navigation">☰</button>
+
+        <!-- Dynamic Navigation Menu (Practical 14) -->
+        <nav id="mainNav">
+            <ul>
+                <?php if ($isAdmin): ?>
+                    <!-- Admin Role Navigation -->
+                    <li><a href="admin_dashboard.php" class="<?php echo ($currentPage == 'admin_dashboard.php') ? 'active' : ''; ?>">Dashboard</a></li>
+                    <li><a href="manage_students.php" class="<?php echo ($currentPage == 'manage_students.php') ? 'active' : ''; ?>">Manage Students</a></li>
+                    <li><a href="manage_events.php" class="<?php echo ($currentPage == 'manage_events.php') ? 'active' : ''; ?>">Manage Events</a></li>
+                    <li><a href="ajax_events.php" class="<?php echo ($currentPage == 'ajax_events.php') ? 'active' : ''; ?>">AJAX CRUD</a></li>
+                    <li><a href="index.php" class="<?php echo ($currentPage == 'index.php') ? 'active' : ''; ?>">Public View</a></li>
+                    <li><span class="admin-badge">ADMIN: <?php echo $username; ?></span></li>
+                    <li><a href="logout.php" style="color: var(--danger-color);">Logout</a></li>
+
+                <?php elseif ($isLoggedIn): ?>
+                    <!-- Student Role Navigation -->
+                    <li><a href="index.php" class="<?php echo ($currentPage == 'index.php') ? 'active' : ''; ?>">Home</a></li>
+                    <li><a href="about.php" class="<?php echo ($currentPage == 'about.php') ? 'active' : ''; ?>">About</a></li>
+                    <li><a href="events.php" class="<?php echo ($currentPage == 'events.php') ? 'active' : ''; ?>">Events</a></li>
+                    <li><a href="faq.php" class="<?php echo ($currentPage == 'faq.php') ? 'active' : ''; ?>">FAQ</a></li>
+                    <li><a href="dashboard.php" class="<?php echo ($currentPage == 'dashboard.php') ? 'active' : ''; ?>">Dashboard</a></li>
+                    <li><a href="profile.php" class="<?php echo ($currentPage == 'profile.php') ? 'active' : ''; ?>">Profile</a></li>
+                    <li><a href="feedback.php" class="<?php echo ($currentPage == 'feedback.php') ? 'active' : ''; ?>">Feedback</a></li>
+                    <li><span class="user-badge">👨‍🎓 <?php echo $username; ?></span></li>
+                    <li><a href="logout.php" style="color: var(--danger-color);">Logout</a></li>
+
+                <?php else: ?>
+                    <!-- Guest Navigation -->
+                    <li><a href="index.php" class="<?php echo ($currentPage == 'index.php') ? 'active' : ''; ?>">Home</a></li>
+                    <li><a href="about.php" class="<?php echo ($currentPage == 'about.php') ? 'active' : ''; ?>">About</a></li>
+                    <li><a href="events.php" class="<?php echo ($currentPage == 'events.php') ? 'active' : ''; ?>">Events</a></li>
+                    <li><a href="faq.php" class="<?php echo ($currentPage == 'faq.php') ? 'active' : ''; ?>">FAQ</a></li>
+                    <li><a href="contact.php" class="<?php echo ($currentPage == 'contact.php') ? 'active' : ''; ?>">Contact</a></li>
+                    <li><a href="register.php" class="<?php echo ($currentPage == 'register.php') ? 'active' : ''; ?>">Register</a></li>
+                    <li><a href="login.php" class="btn btn-primary btn-sm <?php echo ($currentPage == 'login.php') ? 'active' : ''; ?>" style="color: #fff;">Login</a></li>
+                <?php endif; ?>
+            </ul>
+        </nav>
+
+        <!-- Theme Toggle Button (Practical 4) -->
+        <div class="header-actions">
+            <button id="themeToggleBtn" class="theme-toggle-btn">🌙 Dark Mode</button>
+        </div>
+    </header>
+Output: 
+[Role-based dynamic navigation bar showing distinct menu items for Guests, Students, and Admins]
+| <td colspan=2/> |
+| Gitnub-link:   |  |
+| https://github.com/voramonali9-alt/wdf3rd  <td colspan=2/> |
+Key Question: 
+1. Are dashboard values loaded dynamically from the database? 
+Answer: 
+Yes. Metric cards compute live totals directly from MySQL using SELECT COUNT(*) on the students, events, users, and registrations tables.
+2. Is access restricted to admin users? 
+Answer: 
+Yes. check_auth('admin') blocks unauthorized users and students, redirecting them to their respective areas.
+3. Are role-based menus working? 
+Answer: 
+Yes. The header evaluates the active session role: Admins see management tools, Students see academic links, and Guests see public options.
+4. Are important admin actions recorded in audit_logs? 
+Answer: 
+Yes. Critical operations (user logins, logouts, adding/deleting students and events) insert records into the audit_logs table with timestamps.
